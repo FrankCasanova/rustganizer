@@ -6,8 +6,8 @@ use walkdir::WalkDir;
 use std::collections::HashMap;
 
 #[derive(Debug)]
-pub struct FileStats { // Make FileStats pub if you need to access it from ui.rs
-    pub music: usize, // Make fields pub if needed externally
+pub struct FileStats {
+    pub music: usize,
     pub videos: usize,
     pub images: usize,
     pub pdfs: usize,
@@ -54,7 +54,13 @@ fn get_majority_type(stats: &FileStats) -> Option<&'static str> {
     }
 }
 
-pub fn organize_files(username: &str) -> Result<FileStats, String> { // Modified to take username and return FileStats
+pub fn organize_files(username: &str) -> Result<FileStats, String> {
+    // Validate username by checking if the user's directory exists
+    let user_dir_path = format!("C:/Users/{}", username);
+    if !Path::new(&user_dir_path).exists() {
+        return Err(format!("User '{}' not found. Please enter a valid Windows username.", username));
+    }
+
     let music_count = Arc::new(Mutex::new(0));
     let video_count = Arc::new(Mutex::new(0));
     let images_count = Arc::new(Mutex::new(0));
@@ -68,7 +74,7 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> { // Modified
     let images_dir = format!("C:/Users/{}/Pictures", username);
     let pdf_files_dir = format!("C:/Users/{}/Documents", username);
 
-    // Ensure target directories exist (moved inside organizer module)
+    // Ensure target directories exist
     for dir in [&music_dir, &videos_dir, &images_dir, &pdf_files_dir, &desktop_dir] {
         if !Path::new(dir).exists() {
             fs::create_dir_all(dir).unwrap_or_else(|e| {
@@ -76,7 +82,6 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> { // Modified
             });
         }
     }
-
 
     let dirs = vec![download_dir.to_string(), desktop_dir.to_string()];
     let mut handles = vec![];
@@ -103,7 +108,7 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> { // Modified
                     if path.is_dir() {
                         folders_to_process.push(path);
                     } else if path.is_file() {
-                        // Process files here as well (if needed, you can add file handling logic)
+                        // Process files here as well (if needed)
                     }
                 }
             }
@@ -158,7 +163,7 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> { // Modified
         let images_count = images_count.lock().unwrap();
         let pdf_count = pdf_count.lock().unwrap();
 
-        FileStats { // Return FileStats struct
+        FileStats {
             music: *music_count,
             videos: *video_count,
             images: *images_count,
