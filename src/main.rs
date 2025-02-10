@@ -4,7 +4,16 @@ use cursive::traits::*;
 use cursive::views::{Dialog, EditView, LinearLayout, TextView};
 use std::fs;
 use std::path::Path;
+use std::collections::HashMap;
 use walkdir::WalkDir;
+
+#[derive(Debug)]
+struct FileStats {
+    music: usize,
+    videos: usize,
+    images: usize,
+    pdfs: usize,
+}
 
 fn main() {
     let mut siv = cursive::default();
@@ -29,30 +38,12 @@ fn main() {
                 let pdf_files_dir = format!("C:/Users/{}/Documents", username);
 
                 // Ensure target directories exist
-                if !Path::new(&music_dir).exists() {
-                    fs::create_dir_all(&music_dir).unwrap_or_else(|e| {
-                        eprintln!("Failed to create Music directory: {}", e);
-                    });
-                }
-                if !Path::new(&videos_dir).exists() {
-                    fs::create_dir_all(&videos_dir).unwrap_or_else(|e| {
-                        eprintln!("Failed to create Videos directory: {}", e);
-                    });
-                }
-                if !Path::new(&images_dir).exists() {
-                    fs::create_dir_all(&images_dir).unwrap_or_else(|e| {
-                        eprintln!("Failed to create Pictures directory: {}", e);
-                    });
-                }
-                if !Path::new(&pdf_files_dir).exists() {
-                    fs::create_dir_all(&pdf_files_dir).unwrap_or_else(|e| {
-                        eprintln!("Failed to create Documents directory: {}", e);
-                    });
-                }
-                if !Path::new(&desktop_dir).exists() {
-                    fs::create_dir_all(&desktop_dir).unwrap_or_else(|e| {
-                        eprintln!("Failed to create Desktop directory: {}", e);
-                    });
+                for dir in [&music_dir, &videos_dir, &images_dir, &pdf_files_dir, &desktop_dir] {
+                    if !Path::new(dir).exists() {
+                        fs::create_dir_all(dir).unwrap_or_else(|e| {
+                            eprintln!("Failed to create directory {}: {}", dir, e);
+                        });
+                    }
                 }
 
                 let result = organize_files(
@@ -67,7 +58,7 @@ fn main() {
                 match result {
                     Ok((music_count, video_count, images_count, pdf_count)) => {
                         let info_message = format!(
-                            "{} music files were moved to Music directory\n{} video files were moved to Videos directory\n{} image files were moved to Pictures directory\n{} pdf files were moved to Documents directory",
+                            "{} music files/folders were moved to Music directory\n{} video files/folders were moved to Videos directory\n{} image files/folders were moved to Pictures directory\n{} pdf files/folders were moved to Documents directory",
                             music_count, video_count, images_count, pdf_count
                         );
                         
@@ -83,6 +74,47 @@ fn main() {
     siv.run();
 }
 
+fn analyze_folder(path: &Path) -> FileStats {
+    let mut stats = FileStats {
+        music: 0,
+        videos: 0,
+        images: 0,
+        pdfs: 0,
+    };
+
+    for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
+        if entry.file_type().is_file() {
+            if let Some(extension) = entry.path().extension() {
+                match extension.to_str().unwrap().to_lowercase().as_str() {
+                    "mp3" | "ogg" | "wav" | "flac" => stats.music += 1,
+                    "mp4" | "avi" | "mkv" | "mov" => stats.videos += 1,
+                    "png" | "jpg" | "jpeg" | "gif" => stats.images += 1,
+                    "pdf" => stats.pdfs += 1,
+                    _ => (),
+                }
+            }
+        }
+    }
+
+    stats
+}
+
+fn get_majority_type(stats: &FileStats) -> Option<&'static str> {
+    let mut type_counts = vec![
+        (stats.music, "music"),
+        (stats.videos, "video"),
+        (stats.images, "image"),
+        (stats.pdfs, "pdf"),
+    ];
+    
+    type_counts.sort_by(|a, b| b.0.cmp(&a.0));
+    
+    if type_counts[0].0 > 0 {
+        Some(type_counts[0].1)
+    } else {
+        None
+    }
+}
 
 fn organize_files(
     download_dir: &str,
@@ -111,24 +143,52 @@ fn organize_files(
         let pdf_count = Arc::clone(&pdf_count);
 
         let handle = thread::spawn(move || {
-            for entry in WalkDir::new(&dir).into_iter().filter_map(|e| e.ok()) {
-                if entry.file_type().is_file() {
+            // First pass: Collect all folders and their statistics
+            let mut folders_to_process = Vec::new();
+            let mut processed_paths = HashMap::new();
+
+            // Collect all direct subfolders first
+            if let Ok(entries) = fs::read_dir(&dir) {
+                for entry in entries.filter_map(|e| e.ok()) {
                     let path = entry.path();
-                    if let Some(extension) = path.extension() {
-                        let (target_dir, count) = match extension.to_str().unwrap().to_lowercase().as_str() {
-                            "mp3" | "ogg" | "wav" | "flac" => (&music_dir, &music_count),
-                            "mp4" | "avi" | "mkv" | "mov" => (&videos_dir, &video_count),
-                            "png" | "jpg" | "jpeg" | "gif" => (&images_dir, &images_count),
-                            "pdf" => (&pdf_files_dir, &pdf_count),
-                            _ => continue,
-                        };
+                    if path.is_dir() {
+                        folders_to_process.push(path);
+                    } else if path.is_file() {
+                        // Process files here as well
+                    }
+                }
+            }
 
-                        let file_name = path.file_name().unwrap();
-                        let target_path = Path::new(target_dir).join(file_name);
+            // Process folders
+            for folder_path in &folders_to_process {
+                let stats = analyze_folder(folder_path);
+                if let Some(majority_type) = get_majority_type(&stats) {
+                    let target_dir = match majority_type {
+                        "music" => &music_dir,
+                        "video" => &videos_dir,
+                        "image" => &images_dir,
+                        "pdf" => &pdf_files_dir,
+                        _ => continue,
+                    };
 
-                        if let Err(e) = fs::rename(path, &target_path) {
-                            eprintln!("Error moving file {:?}: {}", path, e);
+                    if let Some(folder_name) = folder_path.file_name() {
+                        let target_path = Path::new(target_dir).join(folder_name);
+                        
+                        if let Err(e) = fs::rename(&folder_path, &target_path) {
+                            eprintln!("Error moving folder {:?}: {}", folder_path, e);
                         } else {
+                            processed_paths.insert(
+                                folder_path.to_str().unwrap().to_string(),
+                                target_path.to_str().unwrap().to_string(),
+                            );
+                            
+                            let count = match majority_type {
+                                "music" => &music_count,
+                                "video" => &video_count,
+                                "image" => &images_count,
+                                "pdf" => &pdf_count,
+                                _ => continue,
+                            };
                             let mut count = count.lock().unwrap();
                             *count += 1;
                         }
@@ -146,14 +206,14 @@ fn organize_files(
 
     let result = {
         let music_count = music_count.lock().unwrap();
-        let images_count = images_count.lock().unwrap();
         let video_count = video_count.lock().unwrap();
+        let images_count = images_count.lock().unwrap();
         let pdf_count = pdf_count.lock().unwrap();
     
         Ok((
             *music_count,
-            *images_count,
             *video_count,
+            *images_count,
             *pdf_count,
         ))
     };
