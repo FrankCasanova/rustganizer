@@ -1,7 +1,9 @@
+use std::sync::{Arc, Mutex};
+use std::thread;
 use cursive::traits::*;
 use cursive::views::{Dialog, EditView, LinearLayout, TextView};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use walkdir::WalkDir;
 
 fn main() {
@@ -81,6 +83,7 @@ fn main() {
     siv.run();
 }
 
+
 fn organize_files(
     download_dir: &str,
     music_dir: &str,
@@ -89,38 +92,71 @@ fn organize_files(
     pdf_files_dir: &str,
     desktop_dir: &str,
 ) -> Result<(usize, usize, usize, usize), String> {
-    let mut music_count = 0;
-    let mut video_count = 0;
-    let mut images_count = 0;
-    let mut pdf_count = 0;
-    
+    let music_count = Arc::new(Mutex::new(0));
+    let video_count = Arc::new(Mutex::new(0));
+    let images_count = Arc::new(Mutex::new(0));
+    let pdf_count = Arc::new(Mutex::new(0));
 
-    for dir in &[download_dir, desktop_dir] {
-        for entry in WalkDir::new(dir).into_iter().filter_map(|e| e.ok()) {
-            if entry.file_type().is_file() {
-                let path = entry.path();
-                if let Some(extension) = path.extension() {
-                    let (target_dir, count) = match extension.to_str().unwrap().to_lowercase().as_str() {
-                        "mp3" | "ogg" | "wav" | "flac" => (music_dir, &mut music_count),
-                        "mp4" | "avi" | "mkv" | "mov" => (videos_dir, &mut video_count),
-                        "png" | "jpg" | "jpeg" | "gif" => (images_dir, &mut images_count),
-                        "pdf" => (pdf_files_dir, &mut pdf_count),
-                        _ => continue,
-                    };
+    let dirs = vec![download_dir.to_string(), desktop_dir.to_string()];
+    let mut handles = vec![];
 
-                    let file_name = path.file_name().unwrap();
-                    let target_path = Path::new(target_dir).join(file_name);
+    for dir in dirs {
+        let music_dir = music_dir.to_string();
+        let videos_dir = videos_dir.to_string();
+        let images_dir = images_dir.to_string();
+        let pdf_files_dir = pdf_files_dir.to_string();
+        let music_count = Arc::clone(&music_count);
+        let video_count = Arc::clone(&video_count);
+        let images_count = Arc::clone(&images_count);
+        let pdf_count = Arc::clone(&pdf_count);
 
-                    if let Err(e) = fs::rename(path, &target_path) {
-                        eprintln!("Error moving file {:?}: {}", path, e);
-                        return Err(e.to_string());
-                    } else {
-                        *count += 1;
+        let handle = thread::spawn(move || {
+            for entry in WalkDir::new(&dir).into_iter().filter_map(|e| e.ok()) {
+                if entry.file_type().is_file() {
+                    let path = entry.path();
+                    if let Some(extension) = path.extension() {
+                        let (target_dir, count) = match extension.to_str().unwrap().to_lowercase().as_str() {
+                            "mp3" | "ogg" | "wav" | "flac" => (&music_dir, &music_count),
+                            "mp4" | "avi" | "mkv" | "mov" => (&videos_dir, &video_count),
+                            "png" | "jpg" | "jpeg" | "gif" => (&images_dir, &images_count),
+                            "pdf" => (&pdf_files_dir, &pdf_count),
+                            _ => continue,
+                        };
+
+                        let file_name = path.file_name().unwrap();
+                        let target_path = Path::new(target_dir).join(file_name);
+
+                        if let Err(e) = fs::rename(path, &target_path) {
+                            eprintln!("Error moving file {:?}: {}", path, e);
+                        } else {
+                            let mut count = count.lock().unwrap();
+                            *count += 1;
+                        }
                     }
                 }
             }
-        }
+        });
+
+        handles.push(handle);
     }
 
-    Ok((music_count, video_count, images_count, pdf_count))
+    for handle in handles {
+        handle.join().map_err(|_| "Thread panicked".to_string())?;
+    }
+
+    let result = {
+        let music_count = music_count.lock().unwrap();
+        let images_count = images_count.lock().unwrap();
+        let video_count = video_count.lock().unwrap();
+        let pdf_count = pdf_count.lock().unwrap();
+    
+        Ok((
+            *music_count,
+            *images_count,
+            *video_count,
+            *pdf_count,
+        ))
+    };
+    
+    result
 }
