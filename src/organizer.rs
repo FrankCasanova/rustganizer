@@ -91,6 +91,7 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> {
         let videos_dir = videos_dir.to_string();
         let images_dir = images_dir.to_string();
         let pdf_files_dir = pdf_files_dir.to_string();
+
         let music_count = Arc::clone(&music_count);
         let video_count = Arc::clone(&video_count);
         let images_count = Arc::clone(&images_count);
@@ -99,16 +100,17 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> {
         let handle = thread::spawn(move || {
             // First pass: Collect all folders and their statistics
             let mut folders_to_process = Vec::new();
+            let mut files_to_process = Vec::new();
             let mut processed_paths = HashMap::new();
 
-            // Collect all direct subfolders first
+            // Collect all direct subfolders and files
             if let Ok(entries) = fs::read_dir(&dir) {
                 for entry in entries.filter_map(|e| e.ok()) {
                     let path = entry.path();
                     if path.is_dir() {
                         folders_to_process.push(path);
                     } else if path.is_file() {
-                        // Process files here as well (if needed)
+                        files_to_process.push(path);
                     }
                 }
             }
@@ -140,6 +142,42 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> {
                                 "music" => &music_count,
                                 "video" => &video_count,
                                 "image" => &images_count,
+                                "pdf" => &pdf_count,
+                                _ => continue,
+                            };
+                            let mut count = count.lock().unwrap();
+                            *count += 1;
+                        }
+                    }
+                }
+            }
+
+            // Process files
+            for file_path in &files_to_process {
+                if let Some(extension) = file_path.extension() {
+                    let target_dir = match extension.to_str().unwrap().to_lowercase().as_str() {
+                        "mp3" | "ogg" | "wav" | "flac" => &music_dir,
+                        "mp4" | "avi" | "mkv" | "mov" => &videos_dir,
+                        "png" | "jpg" | "jpeg" | "gif" => &images_dir,
+                        "pdf" => &pdf_files_dir,
+                        _ => continue,
+                    };
+
+                    if let Some(file_name) = file_path.file_name() {
+                        let target_path = Path::new(target_dir).join(file_name);
+
+                        if let Err(e) = fs::rename(&file_path, &target_path) {
+                            eprintln!("Error moving file {:?}: {}", file_path, e);
+                        } else {
+                            processed_paths.insert(
+                                file_path.to_str().unwrap().to_string(),
+                                target_path.to_str().unwrap().to_string(),
+                            );
+
+                            let count = match extension.to_str().unwrap().to_lowercase().as_str() {
+                                "mp3" | "ogg" | "wav" | "flac" => &music_count,
+                                "mp4" | "avi" | "mkv" | "mov" => &video_count,
+                                "png" | "jpg" | "jpeg" | "gif" => &images_count,
                                 "pdf" => &pdf_count,
                                 _ => continue,
                             };
