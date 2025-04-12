@@ -1,16 +1,16 @@
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use walkdir::WalkDir;
-use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct FileStats {
     pub music: usize,
     pub videos: usize,
     pub images: usize,
-    pub pdfs: usize,
+    pub docs: usize,
 }
 
 fn analyze_folder(path: &Path) -> FileStats {
@@ -18,7 +18,7 @@ fn analyze_folder(path: &Path) -> FileStats {
         music: 0,
         videos: 0,
         images: 0,
-        pdfs: 0,
+        docs: 0,
     };
 
     for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
@@ -28,7 +28,7 @@ fn analyze_folder(path: &Path) -> FileStats {
                     "mp3" | "ogg" | "wav" | "flac" => stats.music += 1,
                     "mp4" | "avi" | "mkv" | "mov" => stats.videos += 1,
                     "png" | "jpg" | "jpeg" | "gif" => stats.images += 1,
-                    "pdf" => stats.pdfs += 1,
+                    "pdf" | "txt" | "epub" => stats.docs += 1,
                     _ => (),
                 }
             }
@@ -42,7 +42,7 @@ fn get_majority_type(stats: &FileStats) -> Option<&'static str> {
         (stats.music, "music"),
         (stats.videos, "video"),
         (stats.images, "image"),
-        (stats.pdfs, "pdf"),
+        (stats.docs, "docs"),
     ];
 
     type_counts.sort_by(|a, b| b.0.cmp(&a.0));
@@ -58,13 +58,16 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> {
     // Validate username by checking if the user's directory exists
     let user_dir_path = format!("C:/Users/{}", username);
     if !Path::new(&user_dir_path).exists() {
-        return Err(format!("User '{}' not found. Please enter a valid Windows username.", username));
+        return Err(format!(
+            "User '{}' not found. Please enter a valid Windows username.",
+            username
+        ));
     }
 
     let music_count = Arc::new(Mutex::new(0));
     let video_count = Arc::new(Mutex::new(0));
     let images_count = Arc::new(Mutex::new(0));
-    let pdf_count = Arc::new(Mutex::new(0));
+    let docs_count = Arc::new(Mutex::new(0));
 
     // Directories to organize
     let download_dir = format!("C:/Users/{}/Downloads", username);
@@ -72,10 +75,16 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> {
     let music_dir = format!("C:/Users/{}/Music", username);
     let videos_dir = format!("C:/Users/{}/Videos", username);
     let images_dir = format!("C:/Users/{}/Pictures", username);
-    let pdf_files_dir = format!("C:/Users/{}/Documents", username);
+    let docs_files_dir = format!("C:/Users/{}/Documents", username);
 
     // Ensure target directories exist
-    for dir in [&music_dir, &videos_dir, &images_dir, &pdf_files_dir, &desktop_dir] {
+    for dir in [
+        &music_dir,
+        &videos_dir,
+        &images_dir,
+        &docs_files_dir,
+        &desktop_dir,
+    ] {
         if !Path::new(dir).exists() {
             fs::create_dir_all(dir).unwrap_or_else(|e| {
                 eprintln!("Failed to create directory {}: {}", dir, e);
@@ -90,12 +99,14 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> {
         let music_dir = music_dir.to_string();
         let videos_dir = videos_dir.to_string();
         let images_dir = images_dir.to_string();
-        let pdf_files_dir = pdf_files_dir.to_string();
+        let docs_files_dir = docs_files_dir.to_string();
 
         let music_count = Arc::clone(&music_count);
         let video_count = Arc::clone(&video_count);
         let images_count = Arc::clone(&images_count);
-        let pdf_count = Arc::clone(&pdf_count);
+        let docs_count = Arc::clone(&docs_count);
+
+        let is_desktop = dir.contains("/Desktop") || dir.contains("\\Desktop");
 
         let handle = thread::spawn(move || {
             // First pass: Collect all folders and their statistics
@@ -108,7 +119,10 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> {
                 for entry in entries.filter_map(|e| e.ok()) {
                     let path = entry.path();
                     if path.is_dir() {
-                        folders_to_process.push(path);
+                        // Only add folders to process if not in Desktop directory
+                        if !is_desktop {
+                            folders_to_process.push(path);
+                        }
                     } else if path.is_file() {
                         files_to_process.push(path);
                     }
@@ -123,7 +137,7 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> {
                         "music" => &music_dir,
                         "video" => &videos_dir,
                         "image" => &images_dir,
-                        "pdf" => &pdf_files_dir,
+                        "docs" => &docs_files_dir,
                         _ => continue,
                     };
 
@@ -142,7 +156,7 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> {
                                 "music" => &music_count,
                                 "video" => &video_count,
                                 "image" => &images_count,
-                                "pdf" => &pdf_count,
+                                "docs" => &docs_count,
                                 _ => continue,
                             };
                             let mut count = count.lock().unwrap();
@@ -155,11 +169,13 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> {
             // Process files
             for file_path in &files_to_process {
                 if let Some(extension) = file_path.extension() {
-                    let target_dir = match extension.to_str().unwrap().to_lowercase().as_str() {
+                    let ext = extension.to_str().unwrap().to_lowercase(); // Store lowercase extension first
+                    let target_dir = match ext.as_str() {
+                        // Now using stored extension
                         "mp3" | "ogg" | "wav" | "flac" => &music_dir,
                         "mp4" | "avi" | "mkv" | "mov" => &videos_dir,
                         "png" | "jpg" | "jpeg" | "gif" => &images_dir,
-                        "pdf" => &pdf_files_dir,
+                        "pdf" | "txt" | "epub" => &docs_files_dir,
                         _ => continue,
                     };
 
@@ -174,11 +190,12 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> {
                                 target_path.to_str().unwrap().to_string(),
                             );
 
-                            let count = match extension.to_str().unwrap().to_lowercase().as_str() {
+                            let count = match ext.as_str() {
+                                // Use the stored extension here too
                                 "mp3" | "ogg" | "wav" | "flac" => &music_count,
                                 "mp4" | "avi" | "mkv" | "mov" => &video_count,
                                 "png" | "jpg" | "jpeg" | "gif" => &images_count,
-                                "pdf" => &pdf_count,
+                                "pdf" | "txt" | "epub" => &docs_count,
                                 _ => continue,
                             };
                             let mut count = count.lock().unwrap();
@@ -199,13 +216,13 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> {
         let music_count = music_count.lock().unwrap();
         let video_count = video_count.lock().unwrap();
         let images_count = images_count.lock().unwrap();
-        let pdf_count = pdf_count.lock().unwrap();
+        let docs_count = docs_count.lock().unwrap();
 
         FileStats {
             music: *music_count,
             videos: *video_count,
             images: *images_count,
-            pdfs: *pdf_count,
+            docs: *docs_count,
         }
     };
 

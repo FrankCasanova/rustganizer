@@ -41,8 +41,8 @@ pub fn run_ui() {
                                  Music files/folders moved: {}\n\
                                  Video files/folders moved: {}\n\
                                  Image files/folders moved: {}\n\
-                                 PDF files/folders moved: {}",
-                                stats.music, stats.videos, stats.images, stats.pdfs
+                                 Docs files/folders moved: {}",
+                                stats.music, stats.videos, stats.images, stats.docs
                             );
 
                             // Queue a callback to update the UI on the Cursive event thread
