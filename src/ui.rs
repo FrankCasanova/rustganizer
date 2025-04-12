@@ -1,7 +1,7 @@
 use crate::organizer;
 use cursive::traits::*;
 use cursive::views::{Dialog, EditView, LinearLayout, TextView}; // Import DummyView
-use rodio::{Decoder, OutputStream, Sink};
+use rodio::{Decoder, OutputStream};
 use std::fs::File;
 use std::io::BufReader;
 use rodio::Source;
@@ -31,6 +31,7 @@ pub fn run_ui() {
                     .call_on_name("username", |view: &mut EditView| view.get_content())
                     .unwrap();
 
+
                 // Prepare a processing dialog
                 let processing_dialog = Dialog::new()
                     .title("Organizing Files...")
@@ -57,6 +58,7 @@ pub fn run_ui() {
                                  Docs files/folders moved: {}",
                                 stats.music, stats.videos, stats.images, stats.docs
                             );
+                            
 
                             // Queue a callback to update the UI on the Cursive event thread
                             cb_sink
@@ -71,13 +73,14 @@ pub fn run_ui() {
                                     // Show the results dialog
                                     s.add_layer(Dialog::info(info_message));
 
-                                    // Play success sound
-                                    if let Err(e) = play_sound("assets/sounds/success.wav") {
-                                        eprintln!("Error playing sound: {}", e);
-                                    }
+                                    
                                 }))
                                 .unwrap();
+                            if let Err(e) = play_sound("assets/sounds/done.mp3") {
+                                eprintln!("Error playing sound: {}", e);
+                            }
                         }
+                        
                         Err(e) => {
                             // Queue a callback to update the UI on the Cursive event thread for errors
                             cb_sink
@@ -96,12 +99,15 @@ pub fn run_ui() {
                                 }))
                                 .unwrap();
                         }
+                        
                     }
                 });
             })
             .button("Close", |s| s.quit())
             .with_name("RustGanizer"), // Give the main dialog a name for potential button disabling
     );
+    // Play success sound
+    
 
     siv.run();
 }
