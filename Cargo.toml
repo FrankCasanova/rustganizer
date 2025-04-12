@@ -1,8 +1,11 @@
 [package]
 name = "rustganizer"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 
 [dependencies]
 cursive = "0.21.0"
 walkdir = "2.3"
+
+[build-dependencies]
+winresource = "0.1.20"
