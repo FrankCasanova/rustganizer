@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 cursive = "0.21.0"
 walkdir = "2.3"
+rodio = "0.17.0"
 
 [build-dependencies]
 winresource = "0.1.20"
