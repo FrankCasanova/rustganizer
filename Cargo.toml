@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 cursive = "0.21.0"
+tempfile = "3.19.1"
 walkdir = "2.3"
 serde = { version = "1.0", features = ["derive"] }
 
