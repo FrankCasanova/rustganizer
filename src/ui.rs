@@ -1,6 +1,6 @@
+use crate::organizer;
 use cursive::traits::*;
 use cursive::views::{Dialog, EditView, LinearLayout, TextView}; // Import DummyView
-use crate::organizer;
 
 pub fn run_ui() {
     let mut siv = cursive::default();
@@ -46,36 +46,43 @@ pub fn run_ui() {
                             );
 
                             // Queue a callback to update the UI on the Cursive event thread
-                            cb_sink.send(Box::new(move |s| {
-                                // Remove the processing dialog
-                                s.pop_layer();
-                                // Re-enable the main dialog buttons (if you disabled them earlier, might not be needed in this example since we are replacing the dialog)
-                                // s.call_on_name("RustGanizer", |dialog: &mut Dialog| {
-                                //     dialog.set_buttons_enabled(true);
-                                // });
+                            cb_sink
+                                .send(Box::new(move |s| {
+                                    // Remove the processing dialog
+                                    s.pop_layer();
+                                    // Re-enable the main dialog buttons (if you disabled them earlier, might not be needed in this example since we are replacing the dialog)
+                                    // s.call_on_name("RustGanizer", |dialog: &mut Dialog| {
+                                    //     dialog.set_buttons_enabled(true);
+                                    // });
 
-                                // Show the results dialog
-                                s.add_layer(Dialog::info(info_message));
-                            })).unwrap();
+                                    // Show the results dialog
+                                    s.add_layer(Dialog::info(info_message));
+                                }))
+                                .unwrap();
                         }
                         Err(e) => {
                             // Queue a callback to update the UI on the Cursive event thread for errors
-                            cb_sink.send(Box::new(move |s| {
-                                // Remove the processing dialog
-                                s.pop_layer();
-                                // Re-enable the main dialog buttons (if you disabled them earlier)
-                                // s.call_on_name("RustGanizer", |dialog: &mut Dialog| {
-                                //     dialog.set_buttons_enabled(true);
-                                // });
-                                // Show the error dialog
-                                s.add_layer(Dialog::info(format!("Error organizing files: {}", e)));
-                            })).unwrap();
+                            cb_sink
+                                .send(Box::new(move |s| {
+                                    // Remove the processing dialog
+                                    s.pop_layer();
+                                    // Re-enable the main dialog buttons (if you disabled them earlier)
+                                    // s.call_on_name("RustGanizer", |dialog: &mut Dialog| {
+                                    //     dialog.set_buttons_enabled(true);
+                                    // });
+                                    // Show the error dialog
+                                    s.add_layer(Dialog::info(format!(
+                                        "Error organizing files: {}",
+                                        e
+                                    )));
+                                }))
+                                .unwrap();
                         }
                     }
                 });
             })
             .button("Close", |s| s.quit())
-            .with_name("RustGanizer") // Give the main dialog a name for potential button disabling
+            .with_name("RustGanizer"), // Give the main dialog a name for potential button disabling
     );
 
     siv.run();
