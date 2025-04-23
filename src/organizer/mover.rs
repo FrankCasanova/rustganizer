@@ -77,6 +77,8 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
             });
         }
     }
+
+    // Define dirs here
     let dirs = vec![download_dir.to_string(), desktop_dir.to_string()];
     let mut handles = vec![];
     for dir in dirs {
@@ -113,89 +115,95 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
                     }
                 }
             }
-            for folder_path in &folders_to_process {
-                let stats = analyze_folder(folder_path);
-                if let Some(majority_type) = get_majority_type(&stats) {
-                    let target_dir = match majority_type {
-                        "music" => &music_dir,
-                        "video" => &videos_dir,
-                        "image" => &images_dir,
-                        "docs" => &docs_files_dir,
-                        _ => continue,
-                    };
-                    if let Some(folder_name) = folder_path.file_name() {
-                        let target_path = Path::new(target_dir).join(folder_name);
-                        if let Err(e) = fs::rename(&folder_path, &target_path) {
-                            eprintln!("Error moving folder {:?}: {}", folder_path, e);
-                        } else {
-                            processed_paths.insert(
-                                folder_path.to_str().unwrap().to_string(),
-                                target_path.to_str().unwrap().to_string(),
-                            );
-                            let count = match majority_type {
-                                "music" => &music_count,
-                                "video" => &video_count,
-                                "image" => &images_count,
-                                "docs" => &docs_count,
-                                _ => continue,
-                            };
-                            let mut count = count.lock().unwrap();
-                            *count += 1;
-                        }
-                    }
-                }
-            }
-            for file_path in &files_to_process {
-                if let Some(extension) = file_path.extension() {
-                    let ext = extension.to_str().unwrap().to_lowercase();
-                    let target_dir = match ext.as_str() {
-                        "mp3" | "ogg" | "wav" | "flac" => &music_dir,
-                        "mp4" | "avi" | "mkv" | "mov" => &videos_dir,
-                        "png" | "jpg" | "jpeg" | "gif" => &images_dir,
-                        "pdf" | "txt" | "epub" => &docs_files_dir,
-                        _ => continue,
-                    };
-                    if let Some(file_name) = file_path.file_name() {
-                        let target_path = Path::new(target_dir).join(file_name);
-                        if let Err(e) = fs::rename(&file_path, &target_path) {
-                            eprintln!("Error moving file {:?}: {}", file_path, e);
-                        } else {
-                            processed_paths.insert(
-                                file_path.to_str().unwrap().to_string(),
-                                target_path.to_str().unwrap().to_string(),
-                            );
-                            let count = match ext.as_str() {
-                                "mp3" | "ogg" | "wav" | "flac" => &music_count,
-                                "mp4" | "avi" | "mkv" | "mov" => &video_count,
-                                "png" | "jpg" | "jpeg" | "gif" => &images_count,
-                                "pdf" | "txt" | "epub" => &docs_count,
-                                _ => continue,
-                            };
-                            let mut count = count.lock().unwrap();
-                            *count += 1;
-                        }
-                    }
-                }
-            }
-        });
-        handles.push(handle);
-    }
-    for handle in handles {
-        handle.join().map_err(|_| "Thread panicked".to_string())?;
-    }
-    let result = {
-        let music_count = music_count.lock().unwrap();
-        let video_count = video_count.lock().unwrap();
-        let images_count = images_count.lock().unwrap();
-        let docs_count = docs_count.lock().unwrap();
-        FileStats {
-            music: *music_count,
-            videos: *video_count,
-            images: *images_count,
-            docs: *docs_count,
         }
+    }
+
+    // Process folders in parallel
+    let folder_results: Vec<(&'static str, String, String)> = all_folders
+        .par_iter()
+        .filter_map(|folder_path| {
+            let stats = analyze_folder(folder_path);
+            if let Some(majority_type) = get_majority_type(&stats) {
+                let target_dir = match majority_type {
+                    "music" => &music_dir,
+                    "video" => &videos_dir,
+                    "image" => &images_dir,
+                    "docs" => &docs_files_dir,
+                    _ => return None,
+                };
+                if let Some(folder_name) = folder_path.file_name() {
+                    let target_path = Path::new(target_dir).join(folder_name);
+                    if let Err(e) = fs::rename(&folder_path, &target_path) {
+                        eprintln!("Error moving folder {:?}: {}", folder_path, e);
+                        None
+                    } else {
+                        Some((majority_type, folder_path.to_string_lossy().to_string(), target_path.to_string_lossy().to_string()))
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    // Process files in parallel
+    let file_results: Vec<(&'static str, String, String)> = all_files
+        .par_iter()
+        .filter_map(|file_path| {
+            if let Some(extension) = file_path.extension() {
+                let ext = extension.to_str().unwrap().to_lowercase();
+                let target_dir = match ext.as_str() {
+                    "mp3" | "ogg" | "wav" | "flac" => &music_dir,
+                    "mp4" | "avi" | "mkv" | "mov" => &videos_dir,
+                    "png" | "jpg" | "jpeg" | "gif" => &images_dir,
+                    "pdf" | "txt" | "epub" => &docs_files_dir,
+                    _ => return None,
+                };
+                if let Some(file_name) = file_path.file_name() {
+                    let target_path = Path::new(target_dir).join(file_name);
+                    if let Err(e) = fs::rename(&file_path, &target_path) {
+                        eprintln!("Error moving file {:?}: {}", file_path, e);
+                        None
+                    } else {
+                        let kind = match ext.as_str() {
+                            "mp3" | "ogg" | "wav" | "flac" => "music",
+                            "mp4" | "avi" | "mkv" | "mov" => "video",
+                            "png" | "jpg" | "jpeg" | "gif" => "image",
+                            "pdf" | "txt" | "epub" => "docs",
+                            _ => return None,
+                        };
+                        Some((kind, file_path.to_string_lossy().to_string(), target_path.to_string_lossy().to_string()))
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    // Count results
+    let mut stats = FileStats {
+        music: 0,
+        videos: 0,
+        images: 0,
+        docs: 0,
     };
-    Ok(result)
+
+    for (kind, _, _) in folder_results.into_iter().chain(file_results.into_iter()) {
+        match kind {
+            "music" => stats.music += 1,
+            "video" => stats.videos += 1,
+            "image" => stats.images += 1,
+            "docs" => stats.docs += 1,
+            _ => {}
+        }
+    }
+
+    Ok(stats)
 }
 
 #[cfg(test)]
