@@ -137,7 +137,11 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
                         eprintln!("Error moving folder {:?}: {}", folder_path, e);
                         None
                     } else {
-                        Some((majority_type, folder_path.to_string_lossy().to_string(), target_path.to_string_lossy().to_string()))
+                        Some((
+                            majority_type,
+                            folder_path.to_string_lossy().to_string(),
+                            target_path.to_string_lossy().to_string(),
+                        ))
                     }
                 } else {
                     None
@@ -174,7 +178,11 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
                             "pdf" | "txt" | "epub" => "docs",
                             _ => return None,
                         };
-                        Some((kind, file_path.to_string_lossy().to_string(), target_path.to_string_lossy().to_string()))
+                        Some((
+                            kind,
+                            file_path.to_string_lossy().to_string(),
+                            target_path.to_string_lossy().to_string(),
+                        ))
                     }
                 } else {
                     None
