@@ -1,7 +1,7 @@
+use rayon::prelude::*;
 use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;
-use rayon::prelude::*;
 
 #[derive(Debug)]
 pub struct FileStats {
@@ -118,7 +118,11 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> {
                         eprintln!("Error moving folder {:?}: {}", folder_path, e);
                         None
                     } else {
-                        Some((majority_type, folder_path.to_string_lossy().to_string(), target_path.to_string_lossy().to_string()))
+                        Some((
+                            majority_type,
+                            folder_path.to_string_lossy().to_string(),
+                            target_path.to_string_lossy().to_string(),
+                        ))
                     }
                 } else {
                     None
@@ -155,7 +159,11 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> {
                             "pdf" | "txt" | "epub" => "docs",
                             _ => return None,
                         };
-                        Some((kind, file_path.to_string_lossy().to_string(), target_path.to_string_lossy().to_string()))
+                        Some((
+                            kind,
+                            file_path.to_string_lossy().to_string(),
+                            target_path.to_string_lossy().to_string(),
+                        ))
                     }
                 } else {
                     None
@@ -187,7 +195,6 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> {
     Ok(stats)
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -215,9 +222,19 @@ mod tests {
 
     #[test]
     fn test_get_majority_type() {
-        let stats = FileStats { music: 5, videos: 2, images: 1, docs: 0 };
+        let stats = FileStats {
+            music: 5,
+            videos: 2,
+            images: 1,
+            docs: 0,
+        };
         assert_eq!(get_majority_type(&stats), Some("music"));
-        let stats = FileStats { music: 0, videos: 0, images: 0, docs: 0 };
+        let stats = FileStats {
+            music: 0,
+            videos: 0,
+            images: 0,
+            docs: 0,
+        };
         assert_eq!(get_majority_type(&stats), None);
     }
 }
