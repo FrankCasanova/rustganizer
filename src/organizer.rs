@@ -228,3 +228,38 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> {
 
     Ok(result)
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::File;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_analyze_folder_counts_files_correctly() {
+        let dir = tempdir().unwrap();
+        let music_file = dir.path().join("song.mp3");
+        let video_file = dir.path().join("movie.mp4");
+        let image_file = dir.path().join("pic.jpg");
+        let doc_file = dir.path().join("doc.pdf");
+        File::create(&music_file).unwrap();
+        File::create(&video_file).unwrap();
+        File::create(&image_file).unwrap();
+        File::create(&doc_file).unwrap();
+
+        let stats = analyze_folder(dir.path());
+        assert_eq!(stats.music, 1);
+        assert_eq!(stats.videos, 1);
+        assert_eq!(stats.images, 1);
+        assert_eq!(stats.docs, 1);
+    }
+
+    #[test]
+    fn test_get_majority_type() {
+        let stats = FileStats { music: 5, videos: 2, images: 1, docs: 0 };
+        assert_eq!(get_majority_type(&stats), Some("music"));
+        let stats = FileStats { music: 0, videos: 0, images: 0, docs: 0 };
+        assert_eq!(get_majority_type(&stats), None);
+    }
+}
