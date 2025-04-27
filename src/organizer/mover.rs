@@ -59,6 +59,16 @@ pub fn organize_files(username: &str) -> Result<FileStats, String> {
                             folders_to_process.push(path);
                         }
                     } else if path.is_file() {
+                        // REMOVE FILES WITH 0 SIZE
+                        if let Ok(metadata) = fs::metadata(&path) {
+                            if metadata.len() == 0 {
+                                // Remove the file and skip further processing
+                                if let Err(e) = fs::remove_file(&path) {
+                                    eprintln!("Failed to remove empty file {:?}: {}", path, e);
+                                }
+                                continue;
+                            }
+                        }
                         files_to_process.push(path);
                     }
                 }
