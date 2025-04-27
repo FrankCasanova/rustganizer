@@ -1,5 +1,8 @@
-mod ui; // Declare the ui module
+use crate::ui::views::run_ui;
+
+mod ui;
 mod organizer;
+
 fn main() {
-    ui::run_ui(); // Call the function to run the UI from the ui module
+    run_ui();
 }

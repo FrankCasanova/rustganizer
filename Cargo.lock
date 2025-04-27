@@ -487,6 +487,7 @@ name = "rustganizer"
 version = "0.1.2"
 dependencies = [
  "cursive",
+ "serde",
  "walkdir",
  "winresource",
 ]
