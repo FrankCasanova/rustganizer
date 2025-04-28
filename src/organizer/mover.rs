@@ -77,8 +77,6 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
             });
         }
     }
-
-    // Define dirs here
     let dirs = vec![download_dir.to_string(), desktop_dir.to_string()];
     let mut handles = vec![];
     for dir in dirs {
