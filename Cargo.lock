@@ -484,7 +484,11 @@ dependencies = [
 
 [[package]]
 name = "rustganizer"
+<<<<<<< HEAD
 version = "0.1.10"
+=======
+version = "0.1.8"
+>>>>>>> 3ad4351 (Update Cargo.lock)
 dependencies = [
  "cursive",
  "serde",
