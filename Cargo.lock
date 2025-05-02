@@ -484,33 +484,10 @@ dependencies = [
 
 [[package]]
 name = "rustganizer"
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
 version = "0.1.10"
-=======
-version = "0.1.8"
->>>>>>> 3ad4351 (Update Cargo.lock)
-=======
-version = "0.1.6"
->>>>>>> 1cbb1d9 (build: update package version to 0.1.6)
-dependencies = [
- "cursive",
-<<<<<<< HEAD
-<<<<<<< HEAD
- "serde",
-=======
-=======
- "rayon",
->>>>>>> b4803d3 (perf(organizer): replace thread-based parallelism with rayon for file organization)
- "tempfile",
->>>>>>> 3b05b58 (test(organizer): add tests for analyze_folder and get_majority_type)
-=======
-version = "0.1.8"
 dependencies = [
  "cursive",
  "serde",
->>>>>>> ecc04f2 (build: remove unused dependencies to optimize project)
  "walkdir",
  "winresource",
 ]
