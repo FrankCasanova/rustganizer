@@ -4,11 +4,14 @@ use crate::organizer::mover::organize_files;
 use cursive::traits::*;
 use cursive::views::{Dialog, LinearLayout, TextView, SelectView};
 use std::process::Command;
+// use std::fs;
+use std::path::Path;
 
 fn get_windows_users() -> Vec<String> {
     let output = Command::new("cmd")
         .args(["/C", "net user"])
         .output();
+    let mut valid_users = Vec::new();
     if let Ok(output) = output {
         let stdout = String::from_utf8_lossy(&output.stdout);
         let mut users = Vec::new();
@@ -22,10 +25,26 @@ fn get_windows_users() -> Vec<String> {
                 users.extend(line.split_whitespace().map(|s| s.to_string()));
             }
         }
-        users
-    } else {
-        vec![]
+        // Only keep users that have a folder in C:/Users or C:/Usuarios
+        let user_dirs = ["C:/Users", "C:/Usuarios"];
+        for user in users {
+            if user.eq_ignore_ascii_case("the") || user.eq_ignore_ascii_case("command") || user.eq_ignore_ascii_case("completed") || user.eq_ignore_ascii_case("successfully.") {
+                continue;
+            }
+            let mut found = false;
+            for base in &user_dirs {
+                let path = Path::new(base).join(&user);
+                if path.exists() {
+                    found = true;
+                    break;
+                }
+            }
+            if found {
+                valid_users.push(user);
+            }
+        }
     }
+    valid_users
 }
 
 pub fn run_ui() {
