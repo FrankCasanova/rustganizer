@@ -4,9 +4,29 @@ use crate::organizer::analyzer::{analyze_folder, get_majority_type};
 use crate::organizer::types::FileStats;
 use std::collections::HashMap;
 use std::fs;
+use std::io;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::thread;
+
+fn move_dir_recursive(src: &Path, dst: &Path) -> io::Result<()> {
+    if !dst.exists() {
+        return fs::rename(src, dst);
+    }
+    // If dst exists, move all files and folders from src into dst
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let src_path = entry.path();
+        let dst_path = dst.join(entry.file_name());
+        if src_path.is_dir() {
+            move_dir_recursive(&src_path, &dst_path)?;
+        } else {
+            fs::rename(&src_path, &dst_path)?;
+        }
+    }
+    fs::remove_dir(src)?;
+    Ok(())
+}
 
 /// Returns a mapping from logical folder names to localized folder names based on language code.
 fn get_localized_dirs(lang: &str) -> HashMap<&'static str, &'static str> {
@@ -125,7 +145,7 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
                     };
                     if let Some(folder_name) = folder_path.file_name() {
                         let target_path = Path::new(target_dir).join(folder_name);
-                        if let Err(e) = fs::rename(&folder_path, &target_path) {
+                        if let Err(e) = move_dir_recursive(&folder_path, &target_path) {
                             eprintln!("Error moving folder {:?}: {}", folder_path, e);
                         } else {
                             processed_paths.insert(
