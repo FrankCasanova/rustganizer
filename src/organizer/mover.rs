@@ -253,7 +253,9 @@ mod tests {
         let err = result.unwrap_err();
         assert_eq!(
             err,
-            format!("Usuario {username} no encontrado. Por favor, ingrese un nombre de usuario válido.")
+            format!(
+                "Usuario {username} no encontrado. Por favor, ingrese un nombre de usuario válido."
+            )
         );
     }
 
