@@ -2,15 +2,15 @@
 
 use crate::organizer::mover::organize_files;
 use cursive::traits::*;
-use cursive::views::{Dialog, LinearLayout, TextView, SelectView};
-use std::process::Command;
-// use std::fs;
+use cursive::views::{Dialog, LinearLayout, SelectView, TextView};
+use std::env;
 use std::path::Path;
+use std::process::Command;
 
-fn get_windows_users() -> Vec<String> {
-    let output = Command::new("cmd")
-        .args(["/C", "net user"])
-        .output();
+#[cfg(target_os = "windows")]
+fn get_users() -> Vec<String> {
+    // Windows: use net user
+    let output = Command::new("cmd").args(["/C", "net user"]).output();
     let mut valid_users = Vec::new();
     if let Ok(output) = output {
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -25,10 +25,13 @@ fn get_windows_users() -> Vec<String> {
                 users.extend(line.split_whitespace().map(|s| s.to_string()));
             }
         }
-        // Only keep users that have a folder in C:/Users or C:/Usuarios
         let user_dirs = ["C:/Users", "C:/Usuarios"];
         for user in users {
-            if user.eq_ignore_ascii_case("the") || user.eq_ignore_ascii_case("command") || user.eq_ignore_ascii_case("completed") || user.eq_ignore_ascii_case("successfully.") {
+            if user.eq_ignore_ascii_case("the")
+                || user.eq_ignore_ascii_case("command")
+                || user.eq_ignore_ascii_case("completed")
+                || user.eq_ignore_ascii_case("successfully.")
+            {
                 continue;
             }
             let mut found = false;
@@ -47,8 +50,30 @@ fn get_windows_users() -> Vec<String> {
     valid_users
 }
 
+#[cfg(target_family = "unix")]
+fn get_users() -> Vec<String> {
+    // On Linux/macOS, list directories in /home (Linux) or /Users (macOS)
+    let mut users = Vec::new();
+    let home_dirs = if cfg!(target_os = "macos") {
+        "/Users"
+    } else {
+        "/home"
+    };
+    if let Ok(entries) = std::fs::read_dir(home_dirs) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                    users.push(name.to_string());
+                }
+            }
+        }
+    }
+    users
+}
+
 pub fn run_ui() {
-    let users = get_windows_users();
+    let users = get_users();
     let mut siv = cursive::default();
     let mut select = SelectView::<String>::new().with_all_str(users.clone());
     select.add_item("<All Users>", "<ALL>".to_string());
@@ -96,7 +121,7 @@ pub fn run_ui() {
             .title("RustGanizer")
             .content(
                 LinearLayout::vertical()
-                    .child(TextView::new("Select the Windows user to organize:"))
+                    .child(TextView::new("Select the user to organize:"))
                     .child(select.with_name("user_select").fixed_width(50)),
             )
             .button("Close", |s| s.quit())

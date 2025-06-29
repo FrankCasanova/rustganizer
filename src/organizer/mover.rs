@@ -3,6 +3,7 @@
 use crate::organizer::analyzer::{analyze_folder, get_majority_type};
 use crate::organizer::types::FileStats;
 use std::collections::HashMap;
+use std::env;
 use std::fs;
 use std::io;
 use std::path::Path;
@@ -53,8 +54,13 @@ fn get_localized_dirs(lang: &str) -> HashMap<&'static str, &'static str> {
 /// Organizes files for a user, supporting both English and Spanish Windows folder names.
 pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
     let username = username.trim();
-    // Dynamically determine the base user directory ("Users" or "Usuarios")
+    // Dynamically determine the base user directory for each OS
+    #[cfg(target_os = "windows")]
     let user_base_dirs = vec!["C:/Users", "C:/Usuarios"];
+    #[cfg(target_os = "macos")]
+    let user_base_dirs = vec!["/Users"];
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let user_base_dirs = vec!["/home"];
     let mut user_dir_path = None;
     for base in &user_base_dirs {
         let candidate = format!("{}/{}", base, username);
@@ -67,8 +73,14 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
         Some(path) => path,
         None => {
             let err_msg = match lang {
-                "es" => format!("Usuario '{}' no encontrado. Por favor, ingrese un nombre de usuario de Windows válido.", username),
-                _ => format!("User '{}' not found. Please enter a valid Windows username.", username),
+                "es" => format!(
+                    "Usuario '{}' no encontrado. Por favor, ingrese un nombre de usuario válido.",
+                    username
+                ),
+                _ => format!(
+                    "User '{}' not found. Please enter a valid username.",
+                    username
+                ),
             };
             return Err(err_msg);
         }
@@ -228,7 +240,13 @@ mod tests {
         let result = organize_files(username, "en");
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert_eq!(err, format!("User '{}' not found. Please enter a valid Windows username.", username));
+        assert_eq!(
+            err,
+            format!(
+                "User '{}' not found. Please enter a valid username.",
+                username
+            )
+        );
     }
 
     #[test]
@@ -237,7 +255,13 @@ mod tests {
         let result = organize_files(username, "es");
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert_eq!(err, format!("Usuario '{}' no encontrado. Por favor, ingrese un nombre de usuario de Windows válido.", username));
+        assert_eq!(
+            err,
+            format!(
+                "Usuario '{}' no encontrado. Por favor, ingrese un nombre de usuario válido.",
+                username
+            )
+        );
     }
 
     #[test]
