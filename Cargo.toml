@@ -3,6 +3,8 @@ name = "rustganizer"
 version = "0.1.10"
 edition = "2021"
 
+build = "build.rs"
+
 [dependencies]
 cursive = "0.21.1"
 walkdir = "2.5.0"
