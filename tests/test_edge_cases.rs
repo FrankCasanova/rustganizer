@@ -1,8 +1,6 @@
 #[cfg(test)]
 mod tests {
     use rustganizer::organizer::mover::organize_files;
-    use std::fs;
-    use std::path::Path;
 
     #[test]
     fn test_organize_files_empty_username() {

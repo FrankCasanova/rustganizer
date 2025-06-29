@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
     use rustganizer::organizer::mover::organize_files;
-    use rustganizer::organizer::types::FileStats;
 
     #[test]
     fn test_organize_files_invalid_user_en() {

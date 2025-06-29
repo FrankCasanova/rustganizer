@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
     use rustganizer::platform::user::{UserProvider, WindowsUserProvider};
-    use std::path::PathBuf;
 
     #[test]
     #[cfg(target_os = "windows")]

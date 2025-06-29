@@ -77,14 +77,8 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
         Some(path) => path,
         None => {
             let err_msg = match lang {
-                "es" => format!(
-                    "Usuario '{}' no encontrado. Por favor, ingrese un nombre de usuario válido.",
-                    username
-                ),
-                _ => format!(
-                    "User '{}' not found. Please enter a valid username.",
-                    username
-                ),
+                "es" => format!("Usuario {username} no encontrado. Por favor, ingrese un nombre de usuario válido."),
+                _ => format!("User {username} not found. Please enter a valid username."),
             };
             return Err(err_msg);
         }
@@ -110,7 +104,7 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
     ] {
         if !Path::new(dir).exists() {
             fs::create_dir_all(dir).unwrap_or_else(|e| {
-                eprintln!("Failed to create directory {}: {}", dir, e);
+                eprintln!("Failed to create directory {dir}: {e}");
             });
         }
     }
@@ -125,7 +119,7 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
         let video_count = Arc::clone(&video_count);
         let images_count = Arc::clone(&images_count);
         let docs_count = Arc::clone(&docs_count);
-        let is_desktop = dir.contains(&dirs_map["Desktop"]);
+        let is_desktop = dir.contains(dirs_map["Desktop"]);
         let handle = thread::spawn(move || {
             let mut folders_to_process = Vec::new();
             let mut files_to_process = Vec::new();
@@ -141,7 +135,7 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
                         if let Ok(metadata) = fs::metadata(&path) {
                             if metadata.len() == 0 {
                                 if let Err(e) = fs::remove_file(&path) {
-                                    eprintln!("Failed to remove empty file {:?}: {}", path, e);
+                                    eprintln!("Failed to remove empty file {path:?}: {e}");
                                 }
                                 continue;
                             }
@@ -162,8 +156,8 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
                     };
                     if let Some(folder_name) = folder_path.file_name() {
                         let target_path = Path::new(target_dir).join(folder_name);
-                        if let Err(e) = move_dir_recursive(&folder_path, &target_path) {
-                            eprintln!("Error moving folder {:?}: {}", folder_path, e);
+                        if let Err(e) = move_dir_recursive(folder_path, &target_path) {
+                            eprintln!("Error moving folder {folder_path:?}: {e}");
                         } else {
                             processed_paths.insert(
                                 folder_path.to_str().unwrap().to_string(),
@@ -194,8 +188,8 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
                     };
                     if let Some(file_name) = file_path.file_name() {
                         let target_path = Path::new(target_dir).join(file_name);
-                        if let Err(e) = fs::rename(&file_path, &target_path) {
-                            eprintln!("Error moving file {:?}: {}", file_path, e);
+                        if let Err(e) = fs::rename(file_path, &target_path) {
+                            eprintln!("Error moving file {file_path:?}: {e}");
                         } else {
                             processed_paths.insert(
                                 file_path.to_str().unwrap().to_string(),
@@ -247,10 +241,7 @@ mod tests {
         let err = result.unwrap_err();
         assert_eq!(
             err,
-            format!(
-                "User '{}' not found. Please enter a valid username.",
-                username
-            )
+            format!("User {username} not found. Please enter a valid username.")
         );
     }
 
@@ -262,10 +253,7 @@ mod tests {
         let err = result.unwrap_err();
         assert_eq!(
             err,
-            format!(
-                "Usuario '{}' no encontrado. Por favor, ingrese un nombre de usuario válido.",
-                username
-            )
+            format!("Usuario {username} no encontrado. Por favor, ingrese un nombre de usuario válido.")
         );
     }
 

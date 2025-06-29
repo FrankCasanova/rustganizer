@@ -45,7 +45,7 @@ pub fn run_ui() {
                         total_stats.images += stats.images;
                         total_stats.docs += stats.docs;
                     }
-                    Err(e) => errors.push(format!("{}: {}", user, e)),
+                    Err(e) => errors.push(format!("{user}: {e}")),
                 }
             }
             let info_message = format!(

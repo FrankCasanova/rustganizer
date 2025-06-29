@@ -13,11 +13,9 @@ pub struct WindowsUserProvider;
 #[cfg(target_os = "windows")]
 impl UserProvider for WindowsUserProvider {
     fn list_users(&self) -> Vec<String> {
-        use std::process::Command;
         use std::path::Path;
-        let output = Command::new("cmd")
-            .args(["/C", "net user"])
-            .output();
+        use std::process::Command;
+        let output = Command::new("cmd").args(["/C", "net user"]).output();
         let mut valid_users = Vec::new();
         if let Ok(output) = output {
             let stdout = String::from_utf8_lossy(&output.stdout);
@@ -34,7 +32,11 @@ impl UserProvider for WindowsUserProvider {
             }
             let user_dirs = ["C:/Users", "C:/Usuarios"];
             for user in users {
-                if user.eq_ignore_ascii_case("the") || user.eq_ignore_ascii_case("command") || user.eq_ignore_ascii_case("completed") || user.eq_ignore_ascii_case("successfully.") {
+                if user.eq_ignore_ascii_case("the")
+                    || user.eq_ignore_ascii_case("command")
+                    || user.eq_ignore_ascii_case("completed")
+                    || user.eq_ignore_ascii_case("successfully.")
+                {
                     continue;
                 }
                 let mut found = false;
