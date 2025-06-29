@@ -2,6 +2,13 @@
 
 use crate::organizer::analyzer::{analyze_folder, get_majority_type};
 use crate::organizer::types::FileStats;
+#[cfg(target_os = "macos")]
+use crate::platform::user::MacUserProvider;
+#[cfg(all(unix, not(target_os = "macos")))]
+use crate::platform::user::UnixUserProvider;
+use crate::platform::user::UserProvider;
+#[cfg(target_os = "windows")]
+use crate::platform::user::WindowsUserProvider;
 use std::collections::HashMap;
 use std::fs;
 use std::io;
@@ -53,26 +60,30 @@ fn get_localized_dirs(lang: &str) -> HashMap<&'static str, &'static str> {
 /// Organizes files for a user, supporting both English and Spanish Windows folder names.
 pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
     let username = username.trim();
-    // Dynamically determine the base user directory ("Users" or "Usuarios")
-    let user_base_dirs = vec!["C:/Users", "C:/Usuarios"];
-    let mut user_dir_path = None;
-    for base in &user_base_dirs {
-        let candidate = format!("{}/{}", base, username);
-        if Path::new(&candidate).exists() {
-            user_dir_path = Some(candidate);
-            break;
-        }
+    if username.is_empty() {
+        let err_msg = match lang {
+            "es" => "Usuario vacío. Por favor, ingrese un nombre de usuario válido.".to_string(),
+            _ => "Empty username. Please enter a valid username.".to_string(),
+        };
+        return Err(err_msg);
     }
-    let user_dir_path = match user_dir_path {
+    #[cfg(target_os = "windows")]
+    let user_provider = WindowsUserProvider;
+    #[cfg(target_os = "macos")]
+    let user_provider = MacUserProvider;
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let user_provider = UnixUserProvider;
+    let user_dir_path = match user_provider.user_home(username) {
         Some(path) => path,
         None => {
             let err_msg = match lang {
-                "es" => format!("Usuario '{}' no encontrado. Por favor, ingrese un nombre de usuario de Windows válido.", username),
-                _ => format!("User '{}' not found. Please enter a valid Windows username.", username),
+                "es" => format!("Usuario {username} no encontrado. Por favor, ingrese un nombre de usuario válido."),
+                _ => format!("User {username} not found. Please enter a valid username."),
             };
             return Err(err_msg);
         }
     };
+    let user_dir_path = user_dir_path.to_string_lossy();
     let dirs_map = get_localized_dirs(lang);
     let music_count = Arc::new(Mutex::new(0));
     let video_count = Arc::new(Mutex::new(0));
@@ -93,7 +104,7 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
     ] {
         if !Path::new(dir).exists() {
             fs::create_dir_all(dir).unwrap_or_else(|e| {
-                eprintln!("Failed to create directory {}: {}", dir, e);
+                eprintln!("Failed to create directory {dir}: {e}");
             });
         }
     }
@@ -108,7 +119,7 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
         let video_count = Arc::clone(&video_count);
         let images_count = Arc::clone(&images_count);
         let docs_count = Arc::clone(&docs_count);
-        let is_desktop = dir.contains(&dirs_map["Desktop"]);
+        let is_desktop = dir.contains(dirs_map["Desktop"]);
         let handle = thread::spawn(move || {
             let mut folders_to_process = Vec::new();
             let mut files_to_process = Vec::new();
@@ -124,7 +135,7 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
                         if let Ok(metadata) = fs::metadata(&path) {
                             if metadata.len() == 0 {
                                 if let Err(e) = fs::remove_file(&path) {
-                                    eprintln!("Failed to remove empty file {:?}: {}", path, e);
+                                    eprintln!("Failed to remove empty file {path:?}: {e}");
                                 }
                                 continue;
                             }
@@ -145,8 +156,8 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
                     };
                     if let Some(folder_name) = folder_path.file_name() {
                         let target_path = Path::new(target_dir).join(folder_name);
-                        if let Err(e) = move_dir_recursive(&folder_path, &target_path) {
-                            eprintln!("Error moving folder {:?}: {}", folder_path, e);
+                        if let Err(e) = move_dir_recursive(folder_path, &target_path) {
+                            eprintln!("Error moving folder {folder_path:?}: {e}");
                         } else {
                             processed_paths.insert(
                                 folder_path.to_str().unwrap().to_string(),
@@ -177,8 +188,8 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
                     };
                     if let Some(file_name) = file_path.file_name() {
                         let target_path = Path::new(target_dir).join(file_name);
-                        if let Err(e) = fs::rename(&file_path, &target_path) {
-                            eprintln!("Error moving file {:?}: {}", file_path, e);
+                        if let Err(e) = fs::rename(file_path, &target_path) {
+                            eprintln!("Error moving file {file_path:?}: {e}");
                         } else {
                             processed_paths.insert(
                                 file_path.to_str().unwrap().to_string(),
@@ -228,7 +239,10 @@ mod tests {
         let result = organize_files(username, "en");
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert_eq!(err, format!("User '{}' not found. Please enter a valid Windows username.", username));
+        assert_eq!(
+            err,
+            format!("User {username} not found. Please enter a valid username.")
+        );
     }
 
     #[test]
@@ -237,7 +251,10 @@ mod tests {
         let result = organize_files(username, "es");
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert_eq!(err, format!("Usuario '{}' no encontrado. Por favor, ingrese un nombre de usuario de Windows válido.", username));
+        assert_eq!(
+            err,
+            format!("Usuario {username} no encontrado. Por favor, ingrese un nombre de usuario válido.")
+        );
     }
 
     #[test]

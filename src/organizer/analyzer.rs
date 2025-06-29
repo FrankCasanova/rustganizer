@@ -1,7 +1,7 @@
 // Analysis logic for files and folders will go here.
 
-use std::path::Path;
 use crate::organizer::types::FileStats;
+use std::path::Path;
 use walkdir::WalkDir;
 
 pub fn analyze_folder(path: &Path) -> FileStats {
@@ -28,7 +28,7 @@ pub fn analyze_folder(path: &Path) -> FileStats {
 }
 
 pub fn get_majority_type(stats: &FileStats) -> Option<&'static str> {
-    let mut type_counts = vec![
+    let mut type_counts = [
         (stats.music, "music"),
         (stats.videos, "video"),
         (stats.images, "image"),
