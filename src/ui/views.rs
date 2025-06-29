@@ -1,79 +1,24 @@
 // UI construction and event handling will go here.
 
 use crate::organizer::mover::organize_files;
+#[cfg(target_os = "macos")]
+use crate::platform::user::MacUserProvider;
+#[cfg(all(unix, not(target_os = "macos")))]
+use crate::platform::user::UnixUserProvider;
+use crate::platform::user::UserProvider;
+#[cfg(target_os = "windows")]
+use crate::platform::user::WindowsUserProvider;
 use cursive::traits::*;
 use cursive::views::{Dialog, LinearLayout, SelectView, TextView};
-use std::env;
-use std::path::Path;
-use std::process::Command;
-
-#[cfg(target_os = "windows")]
-fn get_users() -> Vec<String> {
-    // Windows: use net user
-    let output = Command::new("cmd").args(["/C", "net user"]).output();
-    let mut valid_users = Vec::new();
-    if let Ok(output) = output {
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let mut users = Vec::new();
-        let mut in_users = false;
-        for line in stdout.lines() {
-            if line.contains("---") {
-                in_users = !in_users;
-                continue;
-            }
-            if in_users {
-                users.extend(line.split_whitespace().map(|s| s.to_string()));
-            }
-        }
-        let user_dirs = ["C:/Users", "C:/Usuarios"];
-        for user in users {
-            if user.eq_ignore_ascii_case("the")
-                || user.eq_ignore_ascii_case("command")
-                || user.eq_ignore_ascii_case("completed")
-                || user.eq_ignore_ascii_case("successfully.")
-            {
-                continue;
-            }
-            let mut found = false;
-            for base in &user_dirs {
-                let path = Path::new(base).join(&user);
-                if path.exists() {
-                    found = true;
-                    break;
-                }
-            }
-            if found {
-                valid_users.push(user);
-            }
-        }
-    }
-    valid_users
-}
-
-#[cfg(target_family = "unix")]
-fn get_users() -> Vec<String> {
-    // On Linux/macOS, list directories in /home (Linux) or /Users (macOS)
-    let mut users = Vec::new();
-    let home_dirs = if cfg!(target_os = "macos") {
-        "/Users"
-    } else {
-        "/home"
-    };
-    if let Ok(entries) = std::fs::read_dir(home_dirs) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                    users.push(name.to_string());
-                }
-            }
-        }
-    }
-    users
-}
 
 pub fn run_ui() {
-    let users = get_users();
+    #[cfg(target_os = "windows")]
+    let user_provider = WindowsUserProvider;
+    #[cfg(target_os = "macos")]
+    let user_provider = MacUserProvider;
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let user_provider = UnixUserProvider;
+    let users: Vec<String> = user_provider.list_users();
     let mut siv = cursive::default();
     let mut select = SelectView::<String>::new().with_all_str(users.clone());
     select.add_item("<All Users>", "<ALL>".to_string());

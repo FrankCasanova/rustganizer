@@ -2,8 +2,14 @@
 
 use crate::organizer::analyzer::{analyze_folder, get_majority_type};
 use crate::organizer::types::FileStats;
+#[cfg(target_os = "macos")]
+use crate::platform::user::MacUserProvider;
+#[cfg(all(unix, not(target_os = "macos")))]
+use crate::platform::user::UnixUserProvider;
+use crate::platform::user::UserProvider;
+#[cfg(target_os = "windows")]
+use crate::platform::user::WindowsUserProvider;
 use std::collections::HashMap;
-use std::env;
 use std::fs;
 use std::io;
 use std::path::Path;
@@ -54,22 +60,20 @@ fn get_localized_dirs(lang: &str) -> HashMap<&'static str, &'static str> {
 /// Organizes files for a user, supporting both English and Spanish Windows folder names.
 pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
     let username = username.trim();
-    // Dynamically determine the base user directory for each OS
-    #[cfg(target_os = "windows")]
-    let user_base_dirs = vec!["C:/Users", "C:/Usuarios"];
-    #[cfg(target_os = "macos")]
-    let user_base_dirs = vec!["/Users"];
-    #[cfg(all(unix, not(target_os = "macos")))]
-    let user_base_dirs = vec!["/home"];
-    let mut user_dir_path = None;
-    for base in &user_base_dirs {
-        let candidate = format!("{}/{}", base, username);
-        if Path::new(&candidate).exists() {
-            user_dir_path = Some(candidate);
-            break;
-        }
+    if username.is_empty() {
+        let err_msg = match lang {
+            "es" => "Usuario vacío. Por favor, ingrese un nombre de usuario válido.".to_string(),
+            _ => "Empty username. Please enter a valid username.".to_string(),
+        };
+        return Err(err_msg);
     }
-    let user_dir_path = match user_dir_path {
+    #[cfg(target_os = "windows")]
+    let user_provider = WindowsUserProvider;
+    #[cfg(target_os = "macos")]
+    let user_provider = MacUserProvider;
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let user_provider = UnixUserProvider;
+    let user_dir_path = match user_provider.user_home(username) {
         Some(path) => path,
         None => {
             let err_msg = match lang {
@@ -85,6 +89,7 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
             return Err(err_msg);
         }
     };
+    let user_dir_path = user_dir_path.to_string_lossy();
     let dirs_map = get_localized_dirs(lang);
     let music_count = Arc::new(Mutex::new(0));
     let video_count = Arc::new(Mutex::new(0));
