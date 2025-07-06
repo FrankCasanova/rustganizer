@@ -61,6 +61,8 @@ pub fn run_ui() {
                 .unwrap();
         });
     });
+    // let screen_height = siv.screen_size().y;
+    siv.add_global_callback(cursive::event::Key::Esc, |s| s.quit());
     siv.add_layer(
         Dialog::new()
             .title("RustGanizer")
@@ -69,7 +71,7 @@ pub fn run_ui() {
                     .child(TextView::new("Select the user to organize:"))
                     .child(select.with_name("user_select").fixed_width(50)),
             )
-            .button("Close", |s| s.quit())
+            .button("Esc", |s| s.quit())
             .with_name("RustGanizer"),
     );
     siv.run();
