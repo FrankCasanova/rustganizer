@@ -10,5 +10,12 @@ cursive = "0.21.1"
 walkdir = "2.5.0"
 serde = { version = "1.0.219", features = ["derive"] }
 
+[package.metadata.winresource]
+LegalCopyright = "Copyright 2025 FrankCasanova Technologies"
+OriginalFilename = "rustganizer.exe"
+
+
+
+
 [build-dependencies]
 winresource = "0.1.22"

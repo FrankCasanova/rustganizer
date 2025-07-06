@@ -1,12 +1,9 @@
-use std::{env, io};
-use winresource::WindowsResource;
 
-fn main() -> io::Result<()> {
-    if env::var_os("CARGO_CFG_WINDOWS").is_some() {
-        WindowsResource::new()
-            // This path can be absolute, or relative to your crate root.
-            .set_icon("assets/crap.ico")
-            .compile()?;
-    }
-    Ok(())
+
+fn main() {  
+    if std::env::var("CARGO_CFG_TARGET_OS").unwrap() == "windows" {  
+        let mut res = winresource::WindowsResource::new();  
+        res.set_icon("assets/crap.ico");  
+        res.compile().unwrap();  
+    }  
 }
