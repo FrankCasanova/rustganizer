@@ -3,7 +3,9 @@
 ![image](https://github.com/user-attachments/assets/b3dce163-d2cc-405b-a036-7e5de39e644c)
 
 
-RustGanizer is a simple file organizer written in Rust. It helps you organize files on your Windows system by categorizing them into folders based on their types (e.g., music, videos, images, and documents). The program uses a terminal-based user interface powered by the `cursive` crate.
+**RustGanizer: Automatically organize your Windows Downloads & Desktop with Rust-powered efficiency!**
+
+A terminal-based file manager that categorizes media/docs into proper folders. Built with Rust's Cursive for a sleek CLI experience. Perfect for developers who value clean workspaces and powerful system tools.
 
 ## Features
 
@@ -80,4 +82,3 @@ If you want to modify or contribute to RustGanizer, follow theses stepes:
 
 ##### License
 This project is licensed under the MIT License. See the `LICENSE` file for details.
-
