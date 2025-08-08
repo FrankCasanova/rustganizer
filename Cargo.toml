@@ -18,4 +18,4 @@ OriginalFilename = "rustganizer.exe"
 
 
 [build-dependencies]
-winresource = "0.1.22"
+winresource = "0.1.23"
