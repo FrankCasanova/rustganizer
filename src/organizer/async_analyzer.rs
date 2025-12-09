@@ -5,7 +5,7 @@ use crate::organizer::types::FileStats;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use tokio::fs;
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
 /// Asynchronous folder analyzer with parallel processing
 pub struct AsyncAnalyzer {
