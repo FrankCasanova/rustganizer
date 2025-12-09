@@ -1,5 +1,6 @@
 // File moving and organizing logic will go here.
 
+use crate::config::Config;
 use crate::organizer::analyzer::{analyze_folder, get_majority_type};
 use crate::organizer::types::FileStats;
 #[cfg(target_os = "macos")]
@@ -58,14 +59,10 @@ fn get_localized_dirs(lang: &str) -> HashMap<&'static str, &'static str> {
 }
 
 /// Organizes files for a user, supporting both English and Spanish Windows folder names.
-pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
+pub fn organize_files(username: &str, lang: &str, config: &Config) -> Result<FileStats, String> {
     let username = username.trim();
     if username.is_empty() {
-        let err_msg = match lang {
-            "es" => "Usuario vacío. Por favor, ingrese un nombre de usuario válido.".to_string(),
-            _ => "Empty username. Please enter a valid username.".to_string(),
-        };
-        return Err(err_msg);
+        return Err(config.get_error_message(lang, "empty_username", username));
     }
     #[cfg(target_os = "windows")]
     let user_provider = WindowsUserProvider;
@@ -76,25 +73,20 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
     let user_dir_path = match user_provider.user_home(username) {
         Some(path) => path,
         None => {
-            let err_msg = match lang {
-                "es" => format!("Usuario {username} no encontrado. Por favor, ingrese un nombre de usuario válido."),
-                _ => format!("User {username} not found. Please enter a valid username."),
-            };
-            return Err(err_msg);
+            return Err(config.get_error_message(lang, "user_not_found", username));
         }
     };
     let user_dir_path = user_dir_path.to_string_lossy();
-    let dirs_map = get_localized_dirs(lang);
     let music_count = Arc::new(Mutex::new(0));
     let video_count = Arc::new(Mutex::new(0));
     let images_count = Arc::new(Mutex::new(0));
     let docs_count = Arc::new(Mutex::new(0));
-    let download_dir = format!("{}/{}", user_dir_path, dirs_map["Downloads"]);
-    let desktop_dir = format!("{}/{}", user_dir_path, dirs_map["Desktop"]);
-    let music_dir = format!("{}/{}", user_dir_path, dirs_map["Music"]);
-    let videos_dir = format!("{}/{}", user_dir_path, dirs_map["Videos"]);
-    let images_dir = format!("{}/{}", user_dir_path, dirs_map["Pictures"]);
-    let docs_files_dir = format!("{}/{}", user_dir_path, dirs_map["Documents"]);
+    let download_dir = format!("{}/{}", user_dir_path, config.get_localized_dir(lang, "Downloads"));
+    let desktop_dir = format!("{}/{}", user_dir_path, config.get_localized_dir(lang, "Desktop"));
+    let music_dir = format!("{}/{}", user_dir_path, config.get_localized_dir(lang, "Music"));
+    let videos_dir = format!("{}/{}", user_dir_path, config.get_localized_dir(lang, "Videos"));
+    let images_dir = format!("{}/{}", user_dir_path, config.get_localized_dir(lang, "Pictures"));
+    let docs_files_dir = format!("{}/{}", user_dir_path, config.get_localized_dir(lang, "Documents"));
     for dir in [
         &music_dir,
         &videos_dir,
@@ -119,7 +111,7 @@ pub fn organize_files(username: &str, lang: &str) -> Result<FileStats, String> {
         let video_count = Arc::clone(&video_count);
         let images_count = Arc::clone(&images_count);
         let docs_count = Arc::clone(&docs_count);
-        let is_desktop = dir.contains(dirs_map["Desktop"]);
+        let is_desktop = dir.contains(&config.get_localized_dir(lang, "Desktop"));
         let handle = thread::spawn(move || {
             let mut folders_to_process = Vec::new();
             let mut files_to_process = Vec::new();
@@ -236,7 +228,8 @@ mod tests {
     #[test]
     fn test_organize_files_invalid_user_en() {
         let username = "nonexistent_user_xyz";
-        let result = organize_files(username, "en");
+        let config = Config::default();
+        let result = organize_files(username, "en", &config);
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert_eq!(
@@ -248,7 +241,8 @@ mod tests {
     #[test]
     fn test_organize_files_invalid_user_es() {
         let username = "nonexistent_user_xyz";
-        let result = organize_files(username, "es");
+        let config = Config::default();
+        let result = organize_files(username, "es", &config);
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert_eq!(

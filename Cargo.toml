@@ -10,12 +10,19 @@ cursive = "0.21.1"
 walkdir = "2.5.0"
 serde = { version = "1.0.219", features = ["derive"] }
 
-[package.metadata.winresource]
-LegalCopyright = "Copyright 2025 FrankCasanova Technologies"
+[package.metadata.winres]
+# Version resource (file Properties → Details)
+CompanyName = "FrankCasanova Technologies"
+ProductName = "Rustganizer"
+FileDescription = "Rustganizer – console file organizer"
 OriginalFilename = "rustganizer.exe"
-
-
+LegalCopyright = "Copyright 2025 FrankCasanova Technologies"
+# Versions must be four-part numbers
+FileVersion = "0.2.0.0"
+ProductVersion = "0.2.0.0"
+InternalName = "rustganizer"
+Comments = "Built with Rust"
 
 
 [build-dependencies]
-winresource = "0.1.23"
+embed-resource = "2"

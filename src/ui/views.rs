@@ -34,11 +34,12 @@ pub fn run_ui() {
         s.add_layer(processing_dialog);
         let cb_sink = s.cb_sink().clone();
         let usernames_clone = usernames.clone();
+        let config = crate::config::Config::default();
         std::thread::spawn(move || {
             let mut total_stats = crate::organizer::types::FileStats { music: 0, videos: 0, images: 0, docs: 0 };
             let mut errors = Vec::new();
             for user in usernames_clone {
-                match organize_files(&user, "en") {
+                match organize_files(&user, "en", &config) {
                     Ok(stats) => {
                         total_stats.music += stats.music;
                         total_stats.videos += stats.videos;
