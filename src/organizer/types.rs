@@ -11,10 +11,12 @@ pub struct FileStats {
 }
 
 impl FileStats {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self::default()
     }
 
+    #[allow(dead_code)]
     pub fn add(&mut self, other: &FileStats) {
         self.music += other.music;
         self.videos += other.videos;

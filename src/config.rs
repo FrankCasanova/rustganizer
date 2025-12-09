@@ -10,9 +10,13 @@ pub struct Config {
     pub file_extensions: FileExtensions,
     pub localized_dirs: HashMap<String, HashMap<String, String>>,
     pub error_messages: HashMap<String, ErrorMessages>,
+    #[allow(dead_code)]
     pub version: String,
+    #[allow(dead_code)]
     pub logging: LoggingConfig,
+    #[allow(dead_code)]
     pub performance: PerformanceConfig,
+    #[allow(dead_code)]
     pub ui: UiConfig,
 }
 
@@ -23,7 +27,9 @@ pub struct FileExtensions {
     pub videos: Vec<&'static str>,
     pub images: Vec<&'static str>,
     pub docs: Vec<&'static str>,
+    #[allow(dead_code)]
     pub archives: Vec<&'static str>,
+    #[allow(dead_code)]
     pub code: Vec<&'static str>,
 }
 
@@ -185,6 +191,7 @@ impl Config {
     }
 
     /// Check if a file extension belongs to a specific category
+    #[allow(dead_code)]
     pub fn get_file_category(&self, extension: &str) -> Option<&'static str> {
         let ext = extension.to_lowercase();
 

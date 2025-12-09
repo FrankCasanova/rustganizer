@@ -8,6 +8,7 @@ use tokio::fs;
 use tracing::{error, info};
 
 /// Asynchronous folder analyzer with parallel processing
+#[allow(dead_code)]
 pub struct AsyncAnalyzer {
     config: Arc<Config>,
     max_concurrent: usize,
@@ -15,6 +16,7 @@ pub struct AsyncAnalyzer {
 
 impl AsyncAnalyzer {
     /// Create a new async analyzer with configuration
+    #[allow(dead_code)]
     pub fn new(config: Arc<Config>) -> Self {
         let max_concurrent = std::cmp::min(
             4, // Default to 4 for simplicity
@@ -28,6 +30,7 @@ impl AsyncAnalyzer {
     }
 
     /// Analyze multiple directories asynchronously
+    #[allow(dead_code)]
     pub async fn analyze_directories(
         &self,
         paths: Vec<PathBuf>,
@@ -58,6 +61,7 @@ impl AsyncAnalyzer {
     }
 
     /// Analyze a single directory asynchronously
+    #[allow(dead_code)]
     async fn analyze_single_directory(
         &self,
         path: &Path,
@@ -92,6 +96,7 @@ impl AsyncAnalyzer {
     }
 
     /// Get file statistics for a single file asynchronously
+    #[allow(dead_code)]
     pub async fn get_file_stats(
         &self,
         path: &Path,
@@ -120,6 +125,7 @@ impl AsyncAnalyzer {
     }
 
     /// Determine the majority file type in a directory
+    #[allow(dead_code)]
     pub fn get_majority_type(&self, stats: &FileStats) -> Option<&'static str> {
         let mut type_counts = [
             (stats.music, "music"),
@@ -137,6 +143,7 @@ impl AsyncAnalyzer {
     }
 
     /// Batch analyze multiple files for better performance
+    #[allow(dead_code)]
     pub async fn batch_analyze_files(
         &self,
         paths: Vec<PathBuf>,
