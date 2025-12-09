@@ -1,25 +1,28 @@
-// Analysis logic for files and folders will go here.
-
+use crate::config::Config;
 use crate::organizer::types::FileStats;
 use std::path::Path;
 use walkdir::WalkDir;
 
-pub fn analyze_folder(path: &Path) -> FileStats {
+pub fn analyze_folder(path: &Path, config: &Config) -> FileStats {
     let mut stats = FileStats {
         music: 0,
         videos: 0,
         images: 0,
         docs: 0,
     };
+    let file_extensions = config.get_file_extensions();
     for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
         if entry.file_type().is_file() {
             if let Some(extension) = entry.path().extension() {
-                match extension.to_str().unwrap().to_lowercase().as_str() {
-                    "mp3" | "ogg" | "wav" | "flac" => stats.music += 1,
-                    "mp4" | "avi" | "mkv" | "mov" => stats.videos += 1,
-                    "png" | "jpg" | "jpeg" | "gif" => stats.images += 1,
-                    "pdf" | "txt" | "epub" => stats.docs += 1,
-                    _ => (),
+                let ext = extension.to_str().unwrap().to_lowercase();
+                if file_extensions.music.contains(&ext.as_str()) {
+                    stats.music += 1;
+                } else if file_extensions.videos.contains(&ext.as_str()) {
+                    stats.videos += 1;
+                } else if file_extensions.images.contains(&ext.as_str()) {
+                    stats.images += 1;
+                } else if file_extensions.docs.contains(&ext.as_str()) {
+                    stats.docs += 1;
                 }
             }
         }

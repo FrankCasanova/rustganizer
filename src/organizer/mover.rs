@@ -36,27 +36,7 @@ fn move_dir_recursive(src: &Path, dst: &Path) -> io::Result<()> {
     Ok(())
 }
 
-/// Returns a mapping from logical folder names to localized folder names based on language code.
-fn get_localized_dirs(lang: &str) -> HashMap<&'static str, &'static str> {
-    match lang {
-        "es" => HashMap::from([
-            ("Downloads", "Descargas"),
-            ("Desktop", "Escritorio"),
-            ("Music", "Música"),
-            ("Videos", "Vídeos"),
-            ("Pictures", "Imágenes"),
-            ("Documents", "Documentos"),
-        ]),
-        _ => HashMap::from([
-            ("Downloads", "Downloads"),
-            ("Desktop", "Desktop"),
-            ("Music", "Music"),
-            ("Videos", "Videos"),
-            ("Pictures", "Pictures"),
-            ("Documents", "Documents"),
-        ]),
-    }
-}
+
 
 /// Organizes files for a user, supporting both English and Spanish Windows folder names.
 pub fn organize_files(username: &str, lang: &str, config: &Config) -> Result<FileStats, String> {
@@ -112,6 +92,7 @@ pub fn organize_files(username: &str, lang: &str, config: &Config) -> Result<Fil
         let images_count = Arc::clone(&images_count);
         let docs_count = Arc::clone(&docs_count);
         let is_desktop = dir.contains(&config.get_localized_dir(lang, "Desktop"));
+        let config = config.clone();
         let handle = thread::spawn(move || {
             let mut folders_to_process = Vec::new();
             let mut files_to_process = Vec::new();
@@ -137,7 +118,7 @@ pub fn organize_files(username: &str, lang: &str, config: &Config) -> Result<Fil
                 }
             }
             for folder_path in &folders_to_process {
-                let stats = analyze_folder(folder_path);
+                let stats = analyze_folder(folder_path, &config);
                 if let Some(majority_type) = get_majority_type(&stats) {
                     let target_dir = match majority_type {
                         "music" => &music_dir,
@@ -171,12 +152,17 @@ pub fn organize_files(username: &str, lang: &str, config: &Config) -> Result<Fil
             for file_path in &files_to_process {
                 if let Some(extension) = file_path.extension() {
                     let ext = extension.to_str().unwrap().to_lowercase();
-                    let target_dir = match ext.as_str() {
-                        "mp3" | "ogg" | "wav" | "flac" => &music_dir,
-                        "mp4" | "avi" | "mkv" | "mov" => &videos_dir,
-                        "png" | "jpg" | "jpeg" | "gif" => &images_dir,
-                        "pdf" | "txt" | "epub" => &docs_files_dir,
-                        _ => continue,
+                    let file_extensions = config.get_file_extensions();
+                    let target_dir = if file_extensions.music.contains(&ext.as_str()) {
+                        &music_dir
+                    } else if file_extensions.videos.contains(&ext.as_str()) {
+                        &videos_dir
+                    } else if file_extensions.images.contains(&ext.as_str()) {
+                        &images_dir
+                    } else if file_extensions.docs.contains(&ext.as_str()) {
+                        &docs_files_dir
+                    } else {
+                        continue;
                     };
                     if let Some(file_name) = file_path.file_name() {
                         let target_path = Path::new(target_dir).join(file_name);
@@ -187,12 +173,16 @@ pub fn organize_files(username: &str, lang: &str, config: &Config) -> Result<Fil
                                 file_path.to_str().unwrap().to_string(),
                                 target_path.to_str().unwrap().to_string(),
                             );
-                            let count = match ext.as_str() {
-                                "mp3" | "ogg" | "wav" | "flac" => &music_count,
-                                "mp4" | "avi" | "mkv" | "mov" => &video_count,
-                                "png" | "jpg" | "jpeg" | "gif" => &images_count,
-                                "pdf" | "txt" | "epub" => &docs_count,
-                                _ => continue,
+                            let count = if file_extensions.music.contains(&ext.as_str()) {
+                                &music_count
+                            } else if file_extensions.videos.contains(&ext.as_str()) {
+                                &video_count
+                            } else if file_extensions.images.contains(&ext.as_str()) {
+                                &images_count
+                            } else if file_extensions.docs.contains(&ext.as_str()) {
+                                &docs_count
+                            } else {
+                                continue;
                             };
                             let mut count = count.lock().unwrap();
                             *count += 1;
@@ -254,24 +244,24 @@ mod tests {
     }
 
     #[test]
-    fn test_get_localized_dirs_en() {
-        let dirs = get_localized_dirs("en");
-        assert_eq!(dirs["Downloads"], "Downloads");
-        assert_eq!(dirs["Desktop"], "Desktop");
-        assert_eq!(dirs["Music"], "Music");
-        assert_eq!(dirs["Videos"], "Videos");
-        assert_eq!(dirs["Pictures"], "Pictures");
-        assert_eq!(dirs["Documents"], "Documents");
+    fn test_config_localized_dirs_en() {
+        let config = Config::default();
+        assert_eq!(config.get_localized_dir("en", "Downloads"), "Downloads");
+        assert_eq!(config.get_localized_dir("en", "Desktop"), "Desktop");
+        assert_eq!(config.get_localized_dir("en", "Music"), "Music");
+        assert_eq!(config.get_localized_dir("en", "Videos"), "Videos");
+        assert_eq!(config.get_localized_dir("en", "Pictures"), "Pictures");
+        assert_eq!(config.get_localized_dir("en", "Documents"), "Documents");
     }
 
     #[test]
-    fn test_get_localized_dirs_es() {
-        let dirs = get_localized_dirs("es");
-        assert_eq!(dirs["Downloads"], "Descargas");
-        assert_eq!(dirs["Desktop"], "Escritorio");
-        assert_eq!(dirs["Music"], "Música");
-        assert_eq!(dirs["Videos"], "Vídeos");
-        assert_eq!(dirs["Pictures"], "Imágenes");
-        assert_eq!(dirs["Documents"], "Documentos");
+    fn test_config_localized_dirs_es() {
+        let config = Config::default();
+        assert_eq!(config.get_localized_dir("es", "Downloads"), "Descargas");
+        assert_eq!(config.get_localized_dir("es", "Desktop"), "Escritorio");
+        assert_eq!(config.get_localized_dir("es", "Music"), "Música");
+        assert_eq!(config.get_localized_dir("es", "Videos"), "Vídeos");
+        assert_eq!(config.get_localized_dir("es", "Pictures"), "Imágenes");
+        assert_eq!(config.get_localized_dir("es", "Documents"), "Documentos");
     }
 }
