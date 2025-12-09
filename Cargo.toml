@@ -1,6 +1,6 @@
 [package]
 name = "rustganizer"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 
 build = "build.rs"
@@ -9,6 +9,24 @@ build = "build.rs"
 cursive = "0.21.1"
 walkdir = "2.5.0"
 serde = { version = "1.0.219", features = ["derive"] }
+tokio = { version = "1.40", features = ["full"] }
+rayon = "1.10.0"
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["fmt", "env-filter"] }
+anyhow = "1.0.86"
+thiserror = "1.0.61"
+config = "0.14.0"
+uuid = { version = "1.10", features = ["v4", "serde"] }
+dashmap = "5.5.3"
+futures = "0.3.31"
+crossbeam-channel = "0.5.12"
+once_cell = "1.19.0"
+dirs = "5.0.1"
+toml = "0.8.19"
+serde_json = "1.0.133"
+num_cpus = "1.16.0"
+tracing-appender = "0.2.2"
+sysinfo = "0.30.11"
 
 [package.metadata.winres]
 # Version resource (file Properties → Details)
@@ -18,11 +36,13 @@ FileDescription = "Rustganizer – console file organizer"
 OriginalFilename = "rustganizer.exe"
 LegalCopyright = "Copyright 2025 FrankCasanova Technologies"
 # Versions must be four-part numbers
-FileVersion = "0.2.0.0"
-ProductVersion = "0.2.0.0"
+FileVersion = "0.3.0.0"
+ProductVersion = "0.3.0.0"
 InternalName = "rustganizer"
 Comments = "Built with Rust"
 
-
 [build-dependencies]
 embed-resource = "2"
+
+[dev-dependencies]
+tempfile = "3.12.0"

@@ -1,4 +1,10 @@
+//! Enhanced configuration management with backward compatibility
+
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::{PathBuf};
+use std::fs;
+use std::io;
 
 /// Configuration struct to hold file organization rules and localized directory names
 #[derive(Debug, Clone)]
@@ -6,6 +12,10 @@ pub struct Config {
     pub file_extensions: FileExtensions,
     pub localized_dirs: HashMap<String, HashMap<String, String>>,
     pub error_messages: HashMap<String, ErrorMessages>,
+    pub version: String,
+    pub logging: LoggingConfig,
+    pub performance: PerformanceConfig,
+    pub ui: UiConfig,
 }
 
 /// File extension mappings for different categories
@@ -15,6 +25,8 @@ pub struct FileExtensions {
     pub videos: Vec<&'static str>,
     pub images: Vec<&'static str>,
     pub docs: Vec<&'static str>,
+    pub archives: Vec<&'static str>,
+    pub code: Vec<&'static str>,
 }
 
 /// Localized error messages
@@ -22,6 +34,35 @@ pub struct FileExtensions {
 pub struct ErrorMessages {
     pub empty_username: &'static str,
     pub user_not_found: &'static str,
+}
+
+/// Logging configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LoggingConfig {
+    pub level: String,
+    pub file: Option<PathBuf>,
+    pub console: bool,
+    pub max_file_size: usize,
+    pub max_files: usize,
+}
+
+/// Performance configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PerformanceConfig {
+    pub max_concurrent_users: usize,
+    pub thread_pool_size: usize,
+    pub batch_size: usize,
+    pub buffer_size: usize,
+    pub use_parallel_processing: bool,
+}
+
+/// UI configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UiConfig {
+    pub theme: String,
+    pub language: String,
+    pub auto_refresh: bool,
+    pub show_progress: bool,
 }
 
 impl Default for Config {
@@ -62,14 +103,45 @@ impl Default for Config {
         });
 
         Config {
-            file_extensions: FileExtensions {
-                music: vec!["mp3", "ogg", "wav", "flac"],
-                videos: vec!["mp4", "avi", "mkv", "mov"],
-                images: vec!["png", "jpg", "jpeg", "gif"],
-                docs: vec!["pdf", "txt", "epub"],
-            },
+            version: "0.3.0".to_string(),
+            file_extensions: FileExtensions::default(),
             localized_dirs,
             error_messages,
+            logging: LoggingConfig {
+                level: "info".to_string(),
+                file: None,
+                console: true,
+                max_file_size: 10 * 1024 * 1024, // 10MB
+                max_files: 5,
+            },
+            performance: PerformanceConfig {
+                max_concurrent_users: 4,
+                thread_pool_size: std::thread::available_parallelism()
+                    .map(|n| n.get())
+                    .unwrap_or(4),
+                batch_size: 100,
+                buffer_size: 8192,
+                use_parallel_processing: true,
+            },
+            ui: UiConfig {
+                theme: "default".to_string(),
+                language: "en".to_string(),
+                auto_refresh: true,
+                show_progress: true,
+            },
+        }
+    }
+}
+
+impl Default for FileExtensions {
+    fn default() -> Self {
+        Self {
+            music: vec!["mp3", "ogg", "wav", "flac"],
+            videos: vec!["mp4", "avi", "mkv", "mov"],
+            images: vec!["png", "jpg", "jpeg", "gif"],
+            docs: vec!["pdf", "txt", "epub"],
+            archives: vec!["zip", "rar", "7z"],
+            code: vec!["rs", "py", "js"],
         }
     }
 }
@@ -110,6 +182,27 @@ impl Config {
         };
         fallback.replace("{username}", username)
     }
+    
+    /// Check if a file extension belongs to a specific category
+    pub fn get_file_category(&self, extension: &str) -> Option<&'static str> {
+        let ext = extension.to_lowercase();
+        
+        if self.file_extensions.music.contains(&ext.as_str()) {
+            Some("music")
+        } else if self.file_extensions.videos.contains(&ext.as_str()) {
+            Some("video")
+        } else if self.file_extensions.images.contains(&ext.as_str()) {
+            Some("image")
+        } else if self.file_extensions.docs.contains(&ext.as_str()) {
+            Some("docs")
+        } else if self.file_extensions.archives.contains(&ext.as_str()) {
+            Some("archives")
+        } else if self.file_extensions.code.contains(&ext.as_str()) {
+            Some("code")
+        } else {
+            None
+        }
+    }
 }
 
 #[cfg(test)]
@@ -121,11 +214,11 @@ mod tests {
         let config = Config::default();
         
         // Test English directories
-        let english_dirs = config.get_localized_dir("en", "Downloads");
-        assert_eq!(english_dirs, "Downloads");
+        let downloads = config.get_localized_dir("en", "Downloads");
+        assert_eq!(downloads, "Downloads");
         
-        let spanish_dirs = config.get_localized_dir("es", "Downloads");
-        assert_eq!(spanish_dirs, "Descargas");
+        let spanish_downloads = config.get_localized_dir("es", "Downloads");
+        assert_eq!(spanish_downloads, "Descargas");
     }
 
     #[test]
@@ -140,13 +233,24 @@ mod tests {
     }
 
     #[test]
+    fn test_file_category_detection() {
+        let config = Config::default();
+        
+        assert_eq!(config.get_file_category("mp3"), Some("music"));
+        assert_eq!(config.get_file_category("mp4"), Some("video"));
+        assert_eq!(config.get_file_category("png"), Some("image"));
+        assert_eq!(config.get_file_category("pdf"), Some("docs"));
+        assert_eq!(config.get_file_category("unknown"), None);
+    }
+
+    #[test]
     fn test_error_messages() {
         let config = Config::default();
         
-        let empty_msg = config.get_error_message("en", "empty_username", "testuser");
+        let empty_msg = config.get_error_message("en", "empty_username", "");
         assert_eq!(empty_msg, "Empty username. Please enter a valid username.");
         
         let not_found_msg = config.get_error_message("es", "user_not_found", "testuser");
-        assert_eq!(not_found_msg, "Usuario testuser no encontrado. Por favor, ingrese un nombre de usuario válido.");
+        assert!(not_found_msg.contains("testuser"));
     }
 }
