@@ -14,7 +14,7 @@ impl FileStats {
     pub fn new() -> Self {
         Self::default()
     }
-    
+
     pub fn add(&mut self, other: &FileStats) {
         self.music += other.music;
         self.videos += other.videos;

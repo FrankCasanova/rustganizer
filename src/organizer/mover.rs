@@ -36,8 +36,6 @@ fn move_dir_recursive(src: &Path, dst: &Path) -> io::Result<()> {
     Ok(())
 }
 
-
-
 /// Organizes files for a user, supporting both English and Spanish Windows folder names.
 pub fn organize_files(username: &str, lang: &str, config: &Config) -> Result<FileStats, String> {
     let username = username.trim();
@@ -61,12 +59,36 @@ pub fn organize_files(username: &str, lang: &str, config: &Config) -> Result<Fil
     let video_count = Arc::new(Mutex::new(0));
     let images_count = Arc::new(Mutex::new(0));
     let docs_count = Arc::new(Mutex::new(0));
-    let download_dir = format!("{}/{}", user_dir_path, config.get_localized_dir(lang, "Downloads"));
-    let desktop_dir = format!("{}/{}", user_dir_path, config.get_localized_dir(lang, "Desktop"));
-    let music_dir = format!("{}/{}", user_dir_path, config.get_localized_dir(lang, "Music"));
-    let videos_dir = format!("{}/{}", user_dir_path, config.get_localized_dir(lang, "Videos"));
-    let images_dir = format!("{}/{}", user_dir_path, config.get_localized_dir(lang, "Pictures"));
-    let docs_files_dir = format!("{}/{}", user_dir_path, config.get_localized_dir(lang, "Documents"));
+    let download_dir = format!(
+        "{}/{}",
+        user_dir_path,
+        config.get_localized_dir(lang, "Downloads")
+    );
+    let desktop_dir = format!(
+        "{}/{}",
+        user_dir_path,
+        config.get_localized_dir(lang, "Desktop")
+    );
+    let music_dir = format!(
+        "{}/{}",
+        user_dir_path,
+        config.get_localized_dir(lang, "Music")
+    );
+    let videos_dir = format!(
+        "{}/{}",
+        user_dir_path,
+        config.get_localized_dir(lang, "Videos")
+    );
+    let images_dir = format!(
+        "{}/{}",
+        user_dir_path,
+        config.get_localized_dir(lang, "Pictures")
+    );
+    let docs_files_dir = format!(
+        "{}/{}",
+        user_dir_path,
+        config.get_localized_dir(lang, "Documents")
+    );
     for dir in [
         &music_dir,
         &videos_dir,
