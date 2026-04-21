@@ -36,11 +36,30 @@ fn move_dir_recursive(src: &Path, dst: &Path) -> io::Result<()> {
     Ok(())
 }
 
+fn get_platform_locale(lang: &str) -> String {
+    if cfg!(target_os = "windows") {
+        lang.to_string()
+    } else if cfg!(target_os = "macos") {
+        match lang {
+            "en" => "en-macos".to_string(),
+            "es" => "es-macos".to_string(),
+            _ => "en-macos".to_string(),
+        }
+    } else {
+        match lang {
+            "en" => "en-linux".to_string(),
+            "es" => "es-linux".to_string(),
+            _ => "en-linux".to_string(),
+        }
+    }
+}
+
 /// Organizes files for a user, supporting both English and Spanish Windows folder names.
 pub fn organize_files(username: &str, lang: &str, config: &Config) -> Result<FileStats, String> {
+    let lang = get_platform_locale(lang);
     let username = username.trim();
     if username.is_empty() {
-        return Err(config.get_error_message(lang, "empty_username", username));
+        return Err(config.get_error_message(&lang, "empty_username", username));
     }
     #[cfg(target_os = "windows")]
     let user_provider = WindowsUserProvider;
@@ -51,7 +70,7 @@ pub fn organize_files(username: &str, lang: &str, config: &Config) -> Result<Fil
     let user_dir_path = match user_provider.user_home(username) {
         Some(path) => path,
         None => {
-            return Err(config.get_error_message(lang, "user_not_found", username));
+            return Err(config.get_error_message(&lang, "user_not_found", username));
         }
     };
     let user_dir_path = user_dir_path.to_string_lossy();
@@ -62,32 +81,32 @@ pub fn organize_files(username: &str, lang: &str, config: &Config) -> Result<Fil
     let download_dir = format!(
         "{}/{}",
         user_dir_path,
-        config.get_localized_dir(lang, "Downloads")
+        config.get_localized_dir(&lang, "Downloads")
     );
     let desktop_dir = format!(
         "{}/{}",
         user_dir_path,
-        config.get_localized_dir(lang, "Desktop")
+        config.get_localized_dir(&lang, "Desktop")
     );
     let music_dir = format!(
         "{}/{}",
         user_dir_path,
-        config.get_localized_dir(lang, "Music")
+        config.get_localized_dir(&lang, "Music")
     );
     let videos_dir = format!(
         "{}/{}",
         user_dir_path,
-        config.get_localized_dir(lang, "Videos")
+        config.get_localized_dir(&lang, "Videos")
     );
     let images_dir = format!(
         "{}/{}",
         user_dir_path,
-        config.get_localized_dir(lang, "Pictures")
+        config.get_localized_dir(&lang, "Pictures")
     );
     let docs_files_dir = format!(
         "{}/{}",
         user_dir_path,
-        config.get_localized_dir(lang, "Documents")
+        config.get_localized_dir(&lang, "Documents")
     );
     for dir in [
         &music_dir,
@@ -113,7 +132,7 @@ pub fn organize_files(username: &str, lang: &str, config: &Config) -> Result<Fil
         let video_count = Arc::clone(&video_count);
         let images_count = Arc::clone(&images_count);
         let docs_count = Arc::clone(&docs_count);
-        let is_desktop = dir.contains(&config.get_localized_dir(lang, "Desktop"));
+        let is_desktop = dir.contains(&config.get_localized_dir(&lang, "Desktop"));
         let config = config.clone();
         let handle = thread::spawn(move || {
             let mut folders_to_process = Vec::new();

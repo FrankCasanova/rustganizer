@@ -82,9 +82,9 @@ impl Default for Config {
             ("Pictures".to_string(), "Pictures".to_string()),
             ("Documents".to_string(), "Documents".to_string()),
         ]);
-        localized_dirs.insert("en".to_string(), english_dirs);
+        localized_dirs.insert("en".to_string(), english_dirs.clone());
 
-        // Spanish directory names
+        // Spanish directory names (Windows only - macOS/Linux use English folder names)
         let spanish_dirs = HashMap::from([
             ("Downloads".to_string(), "Descargas".to_string()),
             ("Desktop".to_string(), "Escritorio".to_string()),
@@ -94,6 +94,14 @@ impl Default for Config {
             ("Documents".to_string(), "Documentos".to_string()),
         ]);
         localized_dirs.insert("es".to_string(), spanish_dirs);
+
+        // macOS uses English directory names
+        localized_dirs.insert("en-macos".to_string(), english_dirs.clone());
+        localized_dirs.insert("es-macos".to_string(), english_dirs.clone());
+
+        // Linux uses English directory names
+        localized_dirs.insert("en-linux".to_string(), english_dirs.clone());
+        localized_dirs.insert("es-linux".to_string(), english_dirs);
 
         let mut error_messages = HashMap::new();
         error_messages.insert(
@@ -109,8 +117,24 @@ impl Default for Config {
             user_not_found: "Usuario {username} no encontrado. Por favor, ingrese un nombre de usuario válido.",
         });
 
+        // macOS/Linux error messages (same as Spanish)
+        error_messages.insert(
+            "es-macos".to_string(),
+            ErrorMessages {
+                empty_username: "Usuario vacío. Por favor, ingrese un nombre de usuario válido.",
+                user_not_found: "Usuario {username} no encontrado. Por favor, ingrese un nombre de usuario válido.",
+            },
+        );
+        error_messages.insert(
+            "es-linux".to_string(),
+            ErrorMessages {
+                empty_username: "Usuario vacío. Por favor, ingrese un nombre de usuario válido.",
+                user_not_found: "Usuario {username} no encontrado. Por favor, ingrese un nombre de usuario válido.",
+            },
+        );
+
         Config {
-            version: "0.4.0".to_string(),
+            version: "0.5.0".to_string(),
             file_extensions: FileExtensions::default(),
             localized_dirs,
             error_messages,
@@ -260,5 +284,35 @@ mod tests {
 
         let not_found_msg = config.get_error_message("es", "user_not_found", "testuser");
         assert!(not_found_msg.contains("testuser"));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn test_macos_directory_names() {
+        let config = Config::default();
+
+        assert_eq!(
+            config.get_localized_dir("en-macos", "Downloads"),
+            "Downloads"
+        );
+        assert_eq!(
+            config.get_localized_dir("es-macos", "Downloads"),
+            "Downloads"
+        );
+    }
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    #[test]
+    fn test_linux_directory_names() {
+        let config = Config::default();
+
+        assert_eq!(
+            config.get_localized_dir("en-linux", "Downloads"),
+            "Downloads"
+        );
+        assert_eq!(
+            config.get_localized_dir("es-linux", "Downloads"),
+            "Downloads"
+        );
     }
 }
