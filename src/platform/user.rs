@@ -1,10 +1,13 @@
 use std::path::PathBuf;
 
+#[allow(dead_code)]
 pub trait UserProvider {
     /// Returns a list of usernames available on the system.
     fn list_users(&self) -> Vec<String>;
     /// Returns the home directory for a given username, or None if not found.
     fn user_home(&self, username: &str) -> Option<PathBuf>;
+    /// Returns the current user's username.
+    fn current_user(&self) -> Option<String>;
 }
 
 #[cfg(target_os = "windows")]
@@ -33,6 +36,17 @@ impl UserProvider for WindowsUserProvider {
         } else {
             None
         }
+    }
+    fn current_user(&self) -> Option<String> {
+        std::env::var("USERNAME").ok().or_else(|| {
+            std::env::var("USERPROFILE").ok().map(|p| {
+                std::path::Path::new(&p)
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("")
+                    .to_string()
+            })
+        })
     }
 }
 
@@ -63,6 +77,9 @@ impl UserProvider for MacUserProvider {
             None
         }
     }
+    fn current_user(&self) -> Option<String> {
+        std::env::var("USER").ok()
+    }
 }
 
 #[cfg(all(unix, not(target_os = "macos")))]
@@ -91,5 +108,8 @@ impl UserProvider for UnixUserProvider {
         } else {
             None
         }
+    }
+    fn current_user(&self) -> Option<String> {
+        std::env::var("USER").ok()
     }
 }
