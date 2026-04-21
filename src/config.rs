@@ -110,7 +110,7 @@ impl Default for Config {
         });
 
         Config {
-            version: "0.3.0".to_string(),
+            version: "0.3.1".to_string(),
             file_extensions: FileExtensions::default(),
             localized_dirs,
             error_messages,

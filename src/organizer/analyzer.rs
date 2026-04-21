@@ -37,7 +37,7 @@ pub fn get_majority_type(stats: &FileStats) -> Option<&'static str> {
         (stats.images, "image"),
         (stats.docs, "docs"),
     ];
-    type_counts.sort_by(|a, b| b.0.cmp(&a.0));
+    type_counts.sort_by_key(|b| std::cmp::Reverse(b.0));
     if type_counts[0].0 > 0 {
         Some(type_counts[0].1)
     } else {
