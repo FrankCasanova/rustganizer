@@ -189,30 +189,30 @@ pub fn organize_files(username: &str, lang: &str, config: &Config) -> Result<Fil
                     if let Some(file_name) = file_path.file_name() {
                         let target_path = Path::new(target_dir).join(file_name);
                         match fs::rename(file_path, &target_path) {
-                        Ok(_) => {
-                            processed_paths.insert(
-                                file_path.to_str().unwrap().to_string(),
-                                target_path.to_str().unwrap().to_string(),
-                            );
-                            let target_category = target_dir.as_str();
-                            let count = if target_category == music_dir {
-                                &music_count
-                            } else if target_category == videos_dir {
-                                &video_count
-                            } else if target_category == images_dir {
-                                &images_count
-                            } else if target_category == docs_files_dir {
-                                &docs_count
-                            } else {
-                                continue;
-                            };
-                            let mut count = count.lock().unwrap();
-                            *count += 1;
+                            Ok(_) => {
+                                processed_paths.insert(
+                                    file_path.to_str().unwrap().to_string(),
+                                    target_path.to_str().unwrap().to_string(),
+                                );
+                                let target_category = target_dir.as_str();
+                                let count = if target_category == music_dir {
+                                    &music_count
+                                } else if target_category == videos_dir {
+                                    &video_count
+                                } else if target_category == images_dir {
+                                    &images_count
+                                } else if target_category == docs_files_dir {
+                                    &docs_count
+                                } else {
+                                    continue;
+                                };
+                                let mut count = count.lock().unwrap();
+                                *count += 1;
+                            }
+                            Err(e) => {
+                                eprintln!("Error moving file {file_path:?}: {e}");
+                            }
                         }
-                        Err(e) => {
-                            eprintln!("Error moving file {file_path:?}: {e}");
-                        }
-                    }
                     }
                 }
             }
