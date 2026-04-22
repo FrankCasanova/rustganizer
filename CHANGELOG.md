@@ -5,28 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.6.0] - 2025-04-22
 
 ### Added
 
-- Async file processing with `tokio` and `futures`
-- Parallel processing support with `rayon`
-- Comprehensive configuration system with TOML persistence
-- Structured logging with `tracing`
-- Custom error types with `thiserror`
-- CI/CD pipeline with GitHub Actions
+- Port/adapter architecture for platform-specific user providers
+- Multiplatform support (Windows, macOS, Linux)
+- Async file processing
+- Parallel processing with Rayon
 
 ### Changed
 
+- Migrated to Rust 2021 edition
 - Improved modular project structure
-- Enhanced file type categorization (archives, code files)
-- Better error handling and recovery
-- Performance optimization for large directories
-
-### Fixed
-
-- Username lookup on Windows systems
-- File permission handling
 
 ## [0.5.0] - 2025-01-15
 
@@ -64,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 0.6.0 | 2025-04-22 | Port/adapter architecture, multiplatform support |
 | 0.5.0 | 2025-01-15 | Major release with async support |
 | 0.4.0 | 2024-12-01 | Initial feature release |
 

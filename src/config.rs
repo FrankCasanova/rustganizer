@@ -134,7 +134,7 @@ impl Default for Config {
         );
 
         Config {
-            version: "0.5.0".to_string(),
+            version: "0.6.0".to_string(),
             file_extensions: FileExtensions::default(),
             localized_dirs,
             error_messages,
