@@ -1,84 +1,223 @@
 # RustGanizer
 
-![image](https://github.com/user-attachments/assets/b3dce163-d2cc-405b-a036-7e5de39e644c)
+[![Crates.io Version](https://img.shields.io/crates/v/rustganizer)](https://crates.io/crates/rustganizer)
+[![Crates.io License](https://img.shields.io/crates/l/rustganizer)](https://crates.io/crates/rustganizer)
+[![Rust Version](https://img.shields.io/badge/rust-1.75%2B-blue)](https://www.rust-lang.org)
+[![CI Status](https://img.shields.io/github/actions/workflow/status/your-username/rustganizer/ci.yml)](https://github.com/your-username/rustganizer/actions)
+[![Windows Support](https://img.shields.io/badge/platform-Windows-blue)](https://www.microsoft.com/windows)
 
+![RustGanizer Screenshot](https://github.com/user-attachments/assets/b3dce163-d2cc-405b-a036-7e5de39e644c)
 
-**RustGanizer: Automatically organize your Windows Downloads & Desktop with Rust-powered efficiency!**
+RustGanizer is a terminal-based file manager that automatically organizes your Windows Downloads and Desktop folders using Rust-powered efficiency. Built with Rust's Cursive library for a sleek CLI experience, it categorizes media and documents into proper folders with an intuitive interactive interface.
 
-A terminal-based file manager that categorizes media/docs into proper folders. Built with Rust's Cursive for a sleek CLI experience. Perfect for developers who value clean workspaces and powerful system tools.
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Architecture](#architecture)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Overview
+
+RustGanizer scans your `Downloads` and `Desktop` directories, analyzes file types by extension, and moves them into appropriate category folders:
+
+| Category | File Extensions |
+|----------|---------------|
+| Music | `.mp3`, `.wav`, `.flac`, `.aac`, `.ogg`, `.m4a` |
+| Videos | `.mp4`, `.mkv`, `.avi`, `.mov`, `.wmv`, `.flv` |
+| Pictures | `.jpg`, `.jpeg`, `.png`, `.gif`, `.bmp`, `.webp`, `.svg` |
+| Documents | `.pdf`, `.doc`, `.docx`, `.txt`, `.xls`, `.xlsx` |
+| Archives | `.zip`, `.rar`, `.7z` |
+| Code | `.rs`, `.py`, `.js`, `.ts`, `.java`, `.c`, `.cpp` |
 
 ## Features
 
-- Organizes files from your `Downloads` and `Desktop` directories.
-- Moves files into appropriate folders such as `Music`, `Videos`, `Pictures`, and `Documents`.
-- Provides a simple and interactive user interface.
-- Displays statistics about the number of files and folders moved.
+- **Automatic Organization**: Categorizes files from Downloads and Desktop into proper folders
+- **Interactive CLI**: Terminal-based UI built with Cursive
+- **Statistics Tracking**: Displays counts of files and folders moved
+- **Multiple File Support**: Handles media, documents, archives, and code files
+- **Logging**: Comprehensive logging with configurable levels
+- **Error Handling**: Robust error handling with user-friendly messages
 
-## Prerequisites
+## Quick Start
 
-Before running RustGanizer, ensure you have the following installed:
+```bash
+# Clone and build
+git clone https://github.com/your-username/rustganizer.git
+cd rustganizer
+cargo build --release
 
-1. **Rust**: Install Rust using [rustup](https://rustup.rs/).
-2. **Cargo**: Cargo is included with Rust and is used to build and run the program.
-3. **Windows OS**: This program is designed to work on Windows systems.
+# Run
+cargo run
+```
 
-## How to Run
+Enter your Windows username when prompted, then select **Organize** from the menu.
 
-Follow these steps to run RustGanizer:
+## Installation
 
-### 1. Clone the Repository
+### Prerequisites
 
-Clone the RustGanizer repository to your local machine:
+- **Rust** (1.75+): Install via [rustup](https://rustup.rs/)
+- **Cargo**: Included with Rust
+- **Windows OS**: Designed for Windows systems
+
+### Build from Source
 
 ```bash
 git clone https://github.com/your-username/rustganizer.git
 cd rustganizer
+cargo build --release
 ```
 
-### 2. Build the Project
+The compiled binary will be at `target/release/rustganizer.exe`.
 
-Build the project using Cargo:
+## Usage
 
-```bash
-cargo build
-```
+### Running RustGanizer
 
-### 3. Run the Program
-Run the program using Cargo:
 ```bash
 cargo run
 ```
 
-### 4. Enter Your Windows Username
+Or after building:
 
-When prompetd, enter your Windows username. RustGanizer will use this to locate your `Downloads` and `Desktop` directories.
+```bash
+./target/release/rustganizer.exe
+```
 
-### 5. Organize Files
+### Interface
 
-Select the "Organize" button in the terminal-base IU. RustGanizer will:
+1. Enter your Windows username when prompted
+2. Select **Organize** to begin organization
+3. Review the summary showing files moved
+4. Select **Close** to exit
 
-- Analyze the files in your `Downloads` and `Desktop` directories.
-- Move files into the appropiate folders (`Music`, `Videos`, `Pictures`, `Documents`).
+### Troubleshooting
 
-### 6. View Resutls
+| Error | Solution |
+|-------|----------|
+| User not found | Enter a valid Windows username |
+| Permission denied | Run as Administrator |
 
-Once the organization is complete, RustGanizer will display a summary of the files and folders moved.
+## Configuration
 
-### 7. Exit the Program
+### Environment Variables
 
-Select the "Close" button to exit the program.
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `RUSTGANIZER_LOG_LEVEL` | Logging verbosity | `info` |
+| `RUSTGANIZER_CONFIG` | Path to config file | `./config.toml` |
 
-#### Developtment
+### Config File
 
-If you want to modify or contribute to RustGanizer, follow theses stepes:
+Create `config.toml` in the project root:
 
-1. Make changes to the `src` files in the src directory.
-2. Rebuild the project using `cargo build`
-3. Test your changes by running the program with `cargo run`
+```toml
+[logging]
+level = "info"
+file = "rustganizer.log"
 
-#### Troubleshooting
-- Error: User not found: Ensure you enter a valid windows username.
-- Permission issues: Run the program with administrator privileges if you encounter permissions errors while moving files.
+[performance]
+batch_size = 100
+max_workers = 4
 
-##### License
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+[ui]
+language = "en"
+```
+
+### File Extensions
+
+Default supported extensions:
+
+- **Music**: `mp3`, `wav`, `flac`, `aac`, `ogg`, `m4a`
+- **Videos**: `mp4`, `mkv`, `avi`, `mov`, `wmv`, `flv`
+- **Pictures**: `jpg`, `jpeg`, `png`, `gif`, `bmp`, `webp`, `svg`
+- **Documents**: `pdf`, `doc`, `docx`, `txt`, `xls`, `xlsx`, `ppt`, `pptx`
+- **Archives**: `zip`, `rar`, `7z`, `tar`, `gz`
+- **Code**: `rs`, `py`, `js`, `ts`, `java`, `c`, `cpp`, `go`, `rb`
+
+## Architecture
+
+### Module Structure
+
+```
+src/
+├── main.rs           # Entry point
+├── lib.rs           # Library exports
+├── config.rs        # Configuration management
+├── error.rs        # Error types
+├── logging.rs      # Logging system
+├── organizer/      # File organization
+│   ├── mod.rs
+│   ├── analyzer.rs     # File analysis
+│   ├── async_analyzer.rs  # Async analysis
+│   ├── mover.rs       # File moving
+│   └── types.rs       # Data types
+├── platform/       # Platform-specific
+│   ├── mod.rs
+│   └── user.rs     # Windows user utilities
+└── ui/             # User interface
+    ├── mod.rs
+    └── views.rs    # UI views
+```
+
+### Key Components
+
+- **Config**: Centralized configuration with validation and persistence
+- **Organizer**: File analysis and categorization logic
+- **Platform**: Windows-specific utilities
+- **UI**: Interactive terminal interface using Cursive
+
+## Contributing
+
+### Development Setup
+
+```bash
+git clone https://github.com/your-username/rustganizer.git
+cd rustganizer
+cargo build
+```
+
+### Running Tests
+
+```bash
+cargo test
+```
+
+### Code Quality
+
+```bash
+# Format code
+cargo fmt
+
+# Run lints
+cargo clippy -- -D warnings
+```
+
+### Pull Requests
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Coding Standards
+
+- Run `cargo fmt` before committing
+- Ensure `cargo clippy` passes with no warnings
+- Add tests for new features
+- Update documentation for any changes
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+---
+
+Built with Rust by FrankCasanova Technologies
